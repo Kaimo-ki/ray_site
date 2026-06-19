@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Рэй — персональный AI-помощник</title>
+  <meta name="description" content="Рэй помогает учиться, держать фокус, ставить цели и организовывать жизнь.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Рэй">
+      <span class="brand-mark">R</span>
+      <span>Рэй</span>
+    </a>
+    <nav class="nav" aria-label="Главная навигация">
+      <a href="#abilities">Возможности</a>
+      <a href="#ecosystem">Экосистема</a>
+      <a href="#roadmap">План</a>
+    </nav>
+    <a class="nav-action" href="#download">Скачать</a>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <img class="hero-image" src="assets/ray-hero.png" alt="Рэй на экране ноутбука и телефона">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <p class="eyebrow">AI-компаньон для фокуса, учебы и целей</p>
+        <h1>Рэй</h1>
+        <p class="lead">Персональный помощник, который говорит по-человечески, помнит контекст и помогает двигаться маленькими понятными шагами.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#demo">Попробовать демо</a>
+          <a class="button secondary" href="#ecosystem">Как подключить</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo" class="demo-band">
+      <div class="section-heading">
+        <p class="eyebrow">Первый экран продукта</p>
+        <h2>Мини-чат Рея</h2>
+      </div>
+      <div class="chat-shell" aria-label="Демо чат Рея">
+        <div class="chat-header">
+          <div>
+            <strong>Рэй</strong>
+            <span>коротко, спокойно, по делу</span>
+          </div>
+          <span class="status">online</span>
+        </div>
+        <div class="chat-log" id="chatLog">
+          <div class="message ray">Привет. Я Рэй. Напиши цель, тему для учебы или просто мысль, которую хочешь разложить.</div>
+          <div class="message user">Хочу не терять фокус и начать учить английский.</div>
+          <div class="message ray">Ок. Начнем мягко: 15 минут английского в день и один маленький итог вечером. Сегодня выбери только одно: слова, аудирование или разговор.</div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <input id="chatInput" type="text" autocomplete="off" placeholder="Напиши Рэю..." aria-label="Сообщение Рэю">
+          <button type="submit" aria-label="Отправить">
+            <span>→</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <section id="abilities" class="content-band">
+      <div class="section-heading">
+        <p class="eyebrow">Что уже умеет</p>
+        <h2>Один помощник для обычной жизни</h2>
+      </div>
+      <div class="feature-grid">
+        <article class="feature">
+          <span class="icon">💬</span>
+          <h3>Общение</h3>
+          <p>Отвечает коротко, помогает искать решения и подстраивается под стиль человека.</p>
+        </article>
+        <article class="feature">
+          <span class="icon">🧠</span>
+          <h3>Память</h3>
+          <p>Сохраняет контекст, цели и важные заметки, чтобы разговор не начинался с нуля.</p>
+        </article>
+        <article class="feature">
+          <span class="icon">🎤</span>
+          <h3>Голос</h3>
+          <p>Понимает голосовые сообщения и отвечает на то, что человек сказал.</p>
+        </article>
+        <article class="feature">
+          <span class="icon">🎯</span>
+          <h3>Цели</h3>
+          <p>Помогает формулировать цель, дробить ее на шаги и держать один следующий фокус.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="ecosystem" class="ecosystem">
+      <div class="section-heading">
+        <p class="eyebrow">Куда растет</p>
+        <h2>Один Рэй в разных местах</h2>
+      </div>
+      <div class="channels">
+        <div class="channel is-live">
+          <span>Telegram</span>
+          <strong>Работает сейчас</strong>
+        </div>
+        <div class="channel">
+          <span>Web</span>
+          <strong>Следующий шаг</strong>
+        </div>
+        <div class="channel">
+          <span>WhatsApp</span>
+          <strong>Через Meta API</strong>
+        </div>
+        <div class="channel">
+          <span>Instagram</span>
+          <strong>Через Messaging API</strong>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="content-band muted">
+      <div class="section-heading">
+        <p class="eyebrow">План развития</p>
+        <h2>Из бота в личную систему</h2>
+      </div>
+      <div class="timeline">
+        <div>
+          <span>01</span>
+          <p>Стабильный Telegram-бот: память, цели, голос, фото, нормальные презентации.</p>
+        </div>
+        <div>
+          <span>02</span>
+          <p>Backend и сайт: один аккаунт, один профиль, одна память.</p>
+        </div>
+        <div>
+          <span>03</span>
+          <p>Интеграции: WhatsApp, Instagram, виджет для других сайтов.</p>
+        </div>
+        <div>
+          <span>04</span>
+          <p>Свой AI-слой: дешевле, приватнее и гибче по мере роста проекта.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" class="download">
+      <div>
+        <p class="eyebrow">Сайт можно скачать</p>
+        <h2>Статическая версия готова к запуску</h2>
+        <p>Открой `index.html` в браузере или залей папку на GitHub Pages, Netlify, Cloudflare Pages или любой хостинг.</p>
+      </div>
+      <a class="button primary" href="index.html" download>Скачать HTML</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Рэй</span>
+    <span>Персональный AI-помощник</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
