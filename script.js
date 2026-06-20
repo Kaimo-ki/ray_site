@@ -1,98 +1,102 @@
-const form = document.querySelector("#chatForm");
-const input = document.querySelector("#chatInput");
-const log = document.querySelector("#chatLog");
-const chatStatus = document.querySelector("#chatStatus");
+const form = document.getElementById("chatForm");
+const input = document.getElementById("chatInput");
+const messages = document.getElementById("messages");
+const consentPanel = document.getElementById("consentPanel");
+const acceptConsent = document.getElementById("acceptConsent");
+const skipConsent = document.getElementById("skipConsent");
+const openConsent = document.getElementById("openConsent");
+const memoryConsent = document.getElementById("memoryConsent");
+const companion = document.getElementById("companion");
+const toggleCompanion = document.getElementById("toggleCompanion");
+const swatches = document.querySelectorAll("[data-companion]");
 
-const demoReplies = [
-  "Понял. Давай выберем один маленький шаг и сделаем его сегодня.",
-  "Ок. Что сейчас важнее всего: учёба, дела или просто разгрузить голову?",
-  "Слышится как задача про фокус. Давай отделим главное от шума.",
-  "Можно. Сначала уточним цель, потом разобьём её на короткие шаги.",
-  "Я рядом. Напиши чуть подробнее, и я помогу разложить это спокойно."
+const quickReplies = [
+  "Понял. Давай коротко: что главное прямо сейчас?",
+  "Ок. Я бы начал с одного маленького шага на сегодня.",
+  "Слышу. Хочешь, разложу это на план или просто побуду рядом?",
+  "Давай сделаем проще: цель, срок и первый шаг.",
 ];
 
-function getSessionId() {
-  const key = "ray_web_session_id";
-  let sessionId = window.localStorage.getItem(key);
-
-  if (!sessionId) {
-    sessionId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
-    window.localStorage.setItem(key, sessionId);
-  }
-
-  return sessionId;
-}
-
-function addMessage(text, type) {
+const addMessage = (text, type = "ray") => {
   const node = document.createElement("div");
   node.className = `message ${type}`;
   node.textContent = text;
-  log.appendChild(node);
-  log.scrollTop = log.scrollHeight;
+  messages.appendChild(node);
+  messages.scrollTop = messages.scrollHeight;
+};
+
+const rememberSetting = (key, value) => localStorage.setItem(`ray_${key}`, value);
+const readSetting = (key) => localStorage.getItem(`ray_${key}`);
+
+const showConsent = () => consentPanel.classList.add("show");
+const hideConsent = () => consentPanel.classList.remove("show");
+
+if (!readSetting("privacy_seen")) {
+  showConsent();
 }
 
-function setFormBusy(isBusy) {
-  input.disabled = isBusy;
-  form.querySelector("button").disabled = isBusy;
-}
+openConsent.addEventListener("click", showConsent);
+skipConsent.addEventListener("click", () => {
+  rememberSetting("privacy_seen", "yes");
+  rememberSetting("memory_allowed", "no");
+  hideConsent();
+});
 
-async function askRayApi(text) {
-  const baseUrl = (window.RAY_API_URL || "").replace(/\/$/, "");
+acceptConsent.addEventListener("click", () => {
+  rememberSetting("privacy_seen", "yes");
+  rememberSetting("memory_allowed", memoryConsent.checked ? "yes" : "no");
+  hideConsent();
+});
 
-  if (!baseUrl) {
-    chatStatus.textContent = "demo mode";
-    return null;
-  }
+const applyCompanionColor = (color) => {
+  document.body.classList.remove("companion-amber", "companion-blue", "companion-rose");
+  if (color !== "teal") document.body.classList.add(`companion-${color}`);
+  swatches.forEach((button) => button.classList.toggle("active", button.dataset.companion === color));
+  rememberSetting("companion_color", color);
+};
 
-  chatStatus.textContent = "connected";
+const setCompanionVisible = (visible) => {
+  companion.classList.toggle("hidden", !visible);
+  toggleCompanion.textContent = visible ? "●" : "○";
+  rememberSetting("companion_visible", visible ? "yes" : "no");
+};
 
-  const response = await fetch(`${baseUrl}/chat`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      message: text,
-      session_id: getSessionId()
-    })
-  });
+applyCompanionColor(readSetting("companion_color") || "teal");
+setCompanionVisible(readSetting("companion_visible") !== "no");
 
-  if (!response.ok) {
-    throw new Error(`Ray API error: ${response.status}`);
-  }
+swatches.forEach((button) => {
+  button.addEventListener("click", () => applyCompanionColor(button.dataset.companion));
+});
 
-  const data = await response.json();
-
-  if (data.session_id) {
-    window.localStorage.setItem("ray_web_session_id", data.session_id);
-  }
-
-  return data.reply;
-}
-
-function demoReply() {
-  return demoReplies[Math.floor(Math.random() * demoReplies.length)];
-}
+toggleCompanion.addEventListener("click", () => {
+  setCompanionVisible(companion.classList.contains("hidden"));
+});
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const text = input.value.trim();
-
-  if (!text) {
-    return;
-  }
+  if (!text) return;
 
   addMessage(text, "user");
   input.value = "";
-  setFormBusy(true);
 
-  try {
-    const reply = await askRayApi(text);
-    addMessage(reply || demoReply(), "ray");
-  } catch (error) {
-    console.warn(error);
-    chatStatus.textContent = "demo mode";
-    addMessage("Сайт пока не подключён к серверу Рея. Интерфейс готов, backend подключим после VM.", "ray");
-  } finally {
-    setFormBusy(false);
-    input.focus();
+  const apiUrl = window.RAY_API_URL;
+  if (apiUrl) {
+    try {
+      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "site-demo", text }),
+      });
+      const data = await response.json();
+      addMessage(data.reply || "Я рядом. Скажи чуть подробнее?");
+      return;
+    } catch (error) {
+      addMessage("Связь с Рэем сейчас не отвечает. Я сохранил мысль на экране.");
+      return;
+    }
   }
+
+  const reply = quickReplies[Math.floor(Math.random() * quickReplies.length)];
+  window.setTimeout(() => addMessage(reply), 350);
 });

@@ -1,16 +1,10 @@
-Ray website
+Рэй — публичный сайт
 
-Публичный сайт Рея.
+Открыть локально:
+index.html
 
-Файлы:
-- index.html - страница сайта
-- styles.css - визуальный стиль
-- config.js - URL backend API после VM
-- script.js - web-chat с API/fallback demo
-- assets/ray-hero.png - hero-изображение
-- assets/ray-avatar.png - avatar Рея
+Публичная ссылка:
+https://kaimo-ki.github.io/ray_site/
 
-Пока window.RAY_API_URL в config.js пустой, чат работает как демо.
-Когда backend будет поднят на VM, вставь URL:
-
-window.RAY_API_URL = "https://api.example.com";
+Подключение настоящего API:
+в config.js указать window.RAY_API_URL = "https://your-api.example.com"
