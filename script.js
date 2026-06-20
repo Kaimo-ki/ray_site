@@ -1,13 +1,14 @@
 const form = document.querySelector("#chatForm");
 const input = document.querySelector("#chatInput");
 const log = document.querySelector("#chatLog");
+const chatStatus = document.querySelector("#chatStatus");
 
 const demoReplies = [
-  "РџРѕРЅСЏР». Р”Р°РІР°Р№ РІРѕР·СЊРјРµРј РѕРґРёРЅ РјР°Р»РµРЅСЊРєРёР№ С€Р°Рі РЅР° СЃРµРіРѕРґРЅСЏ.",
-  "РћРє. Р§С‚Рѕ СЃРµР№С‡Р°СЃ РІР°Р¶РЅРµРµ РІСЃРµРіРѕ Рё С‡С‚Рѕ РјРѕР¶РЅРѕ СЃРґРµР»Р°С‚СЊ Р·Р° 15 РјРёРЅСѓС‚?",
-  "РџРѕС…РѕР¶Рµ, С‚СѓС‚ РІРѕРїСЂРѕСЃ РїСЂРѕ С„РѕРєСѓСЃ. Р”Р°РІР°Р№ РѕС‚РґРµР»РёРј РіР»Р°РІРЅРѕРµ РѕС‚ С€СѓРјР°.",
-  "РњРѕР¶РЅРѕ. РЎРЅР°С‡Р°Р»Р° СѓС‚РѕС‡РЅРёРј С†РµР»СЊ, РїРѕС‚РѕРј СЂР°Р·РѕР±СЊРµРј РµРµ РЅР° РєРѕСЂРѕС‚РєРёРµ С€Р°РіРё.",
-  "РЇ СЂСЏРґРѕРј. РќР°РїРёС€Рё С‡СѓС‚СЊ РїРѕРґСЂРѕР±РЅРµРµ, Рё СЏ РїРѕРјРѕРіСѓ СЂР°Р·Р»РѕР¶РёС‚СЊ СЌС‚Рѕ СЃРїРѕРєРѕР№РЅРѕ."
+  "Понял. Давай выберем один маленький шаг и сделаем его сегодня.",
+  "Ок. Что сейчас важнее всего: учёба, дела или просто разгрузить голову?",
+  "Слышится как задача про фокус. Давай отделим главное от шума.",
+  "Можно. Сначала уточним цель, потом разобьём её на короткие шаги.",
+  "Я рядом. Напиши чуть подробнее, и я помогу разложить это спокойно."
 ];
 
 function getSessionId() {
@@ -39,8 +40,11 @@ async function askRayApi(text) {
   const baseUrl = (window.RAY_API_URL || "").replace(/\/$/, "");
 
   if (!baseUrl) {
+    chatStatus.textContent = "demo mode";
     return null;
   }
+
+  chatStatus.textContent = "connected";
 
   const response = await fetch(`${baseUrl}/chat`, {
     method: "POST",
@@ -85,7 +89,8 @@ form.addEventListener("submit", async (event) => {
     addMessage(reply || demoReply(), "ray");
   } catch (error) {
     console.warn(error);
-    addMessage("РЎРµР№С‡Р°СЃ СЃР°Р№С‚ РЅРµ РїРѕРґРєР»СЋС‡РµРЅ Рє Р СЌСЋ. РќРѕ РёРЅС‚РµСЂС„РµР№СЃ СѓР¶Рµ РіРѕС‚РѕРІ, backend РїРѕРґРєР»СЋС‡РёРј РїРѕСЃР»Рµ VM.", "ray");
+    chatStatus.textContent = "demo mode";
+    addMessage("Сайт пока не подключён к серверу Рея. Интерфейс готов, backend подключим после VM.", "ray");
   } finally {
     setFormBusy(false);
     input.focus();
