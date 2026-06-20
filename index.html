@@ -3,200 +3,127 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Рэй — персональный AI-компаньон</title>
-  <meta name="description" content="Рэй помогает учиться, держать фокус, помнить цели и общаться с AI как с живым помощником.">
-  <meta property="og:title" content="Рэй — персональный AI-компаньон">
-  <meta property="og:description" content="Один помощник для Telegram, сайта и будущих интеграций.">
+  <title>Рэй — личный AI-помощник</title>
+  <meta name="description" content="Рэй помогает держать фокус, учиться, помнить цели и общаться с AI как с личным помощником.">
+  <meta property="og:title" content="Рэй — личный AI-помощник">
+  <meta property="og:description" content="AI-компаньон с памятью, голосом и web-чатом.">
   <meta property="og:image" content="assets/ray-avatar.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#top" aria-label="Рэй">
+    <a class="brand" href="#app" aria-label="Рэй">
       <img class="brand-avatar" src="assets/ray-avatar.png" alt="">
       <span>Рэй</span>
     </a>
     <nav class="nav" aria-label="Навигация">
-      <a href="#product">Продукт</a>
-      <a href="#demo">Чат</a>
-      <a href="#ecosystem">Экосистема</a>
-      <a href="#roadmap">План</a>
+      <a href="#app">Чат</a>
+      <a href="#stack">Подключение</a>
+      <a href="#next">План</a>
     </nav>
-    <a class="nav-action" href="#demo">Попробовать</a>
+    <a class="nav-action" href="#app">Открыть</a>
   </header>
 
-  <main id="top">
-    <section class="hero">
-      <img class="hero-image" src="assets/ray-hero.png" alt="Интерфейс Рея на ноутбуке и телефоне">
-      <div class="hero-shade"></div>
-      <div class="hero-content">
-        <p class="eyebrow">Персональный AI-компаньон</p>
-        <h1>Рэй помогает не терять себя в шуме дня.</h1>
-        <p class="lead">Он запоминает контекст, отвечает коротко, понимает голосовые, помогает с целями и постепенно подстраивается под человека.</p>
-        <div class="hero-actions">
-          <a class="button primary" href="#demo">Открыть демо-чат</a>
-          <a class="button glass" href="#ecosystem">Посмотреть экосистему</a>
-        </div>
-        <div class="hero-proof" aria-label="Статус продукта">
-          <span>Telegram MVP</span>
-          <span>Web-ready API</span>
-          <span>Одна память</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="product" class="product-strip">
-      <div class="metric">
-        <strong>1</strong>
-        <span>помощник в разных каналах</span>
-      </div>
-      <div class="metric">
-        <strong>24/7</strong>
-        <span>готов к запуску на VM</span>
-      </div>
-      <div class="metric">
-        <strong>3</strong>
-        <span>ключевые роли: друг, учитель, цели</span>
-      </div>
-    </section>
-
-    <section id="demo" class="demo-section">
-      <div class="section-copy">
-        <p class="eyebrow">Живой интерфейс</p>
-        <h2>Чат, который ощущается спокойнее обычного бота.</h2>
-        <p>Пока backend не поднят на VM, сайт работает в демо-режиме. Когда появится сервер, этот же чат подключится к общей памяти Рея.</p>
-      </div>
-
-      <div class="chat-shell" aria-label="Демо-чат Рея">
-        <div class="chat-header">
-          <img class="chat-avatar" src="assets/ray-avatar.png" alt="">
-          <div class="chat-title">
+  <main>
+    <section id="app" class="app-screen">
+      <aside class="sidebar">
+        <div class="profile">
+          <img src="assets/ray-avatar.png" alt="">
+          <div>
             <strong>Рэй</strong>
-            <span id="chatStatus">demo mode</span>
+            <span>личный помощник</span>
           </div>
-          <div class="status-dot" aria-hidden="true"></div>
         </div>
-        <div class="chat-log" id="chatLog">
-          <div class="message ray">Привет, я Рэй. А ты?</div>
-          <div class="message user">Я хочу наконец нормально держать фокус.</div>
-          <div class="message ray">Понял. Давай без героизма: выбери одну задачу на сегодня и один маленький шаг на 15 минут.</div>
+
+        <div class="mode-list" aria-label="Режимы">
+          <button class="mode is-active" type="button">💬 Общение</button>
+          <button class="mode" type="button">📚 Учитель</button>
+          <button class="mode" type="button">🎯 Цели</button>
+          <button class="mode" type="button">📝 Дневник</button>
         </div>
-        <form class="chat-form" id="chatForm">
-          <input id="chatInput" type="text" autocomplete="off" placeholder="Напиши Рэю..." aria-label="Сообщение Рэю">
-          <button type="submit" aria-label="Отправить">→</button>
-        </form>
-      </div>
+
+        <div class="mini-panel">
+          <span>Сегодня</span>
+          <strong>1 маленький шаг</strong>
+          <p>Рэй помогает выбрать главное, а не тащить всё сразу.</p>
+        </div>
+      </aside>
+
+      <section class="chat-workspace" aria-label="Web-чат Рея">
+        <div class="workspace-top">
+          <div>
+            <p class="eyebrow">Web-chat</p>
+            <h1>Привет, я Рэй. А ты?</h1>
+          </div>
+          <span class="connection" id="chatStatus">demo mode</span>
+        </div>
+
+        <div class="chat-shell">
+          <div class="chat-log" id="chatLog">
+            <div class="message ray">Расскажи, что сейчас важно: учеба, цель, идея или просто мысли в голове.</div>
+            <div class="message user">Хочу не терять фокус и начать учить английский.</div>
+            <div class="message ray">Ок. Сегодня без перегруза: 15 минут английского и один вечерний итог. Начни со слов, аудирования или короткого разговора.</div>
+          </div>
+          <form class="chat-form" id="chatForm">
+            <input id="chatInput" type="text" autocomplete="off" placeholder="Напиши Рэю..." aria-label="Сообщение Рэю">
+            <button type="submit" aria-label="Отправить">→</button>
+          </form>
+        </div>
+      </section>
+
+      <aside class="context-panel">
+        <div class="context-card">
+          <span>Память</span>
+          <p>Контекст, цели и стиль общения сохраняются в общей базе.</p>
+        </div>
+        <div class="context-card">
+          <span>Голос</span>
+          <p>Telegram уже принимает голосовые и отвечает по смыслу.</p>
+        </div>
+        <div class="context-card">
+          <span>Картинки</span>
+          <p>Рэй умеет искать изображения и готов к vision-анализу после ключа.</p>
+        </div>
+      </aside>
     </section>
 
-    <section class="capabilities">
-      <div class="section-copy wide">
-        <p class="eyebrow">Почему это хочется использовать</p>
-        <h2>Рэй не продаёт магию. Он снимает трение.</h2>
-      </div>
-      <div class="feature-grid">
-        <article class="feature">
-          <span class="feature-index">01</span>
-          <h3>Короткие ответы</h3>
-          <p>По умолчанию говорит как человек: ясно, спокойно, без полотен текста.</p>
-        </article>
-        <article class="feature">
-          <span class="feature-index">02</span>
-          <h3>Память</h3>
-          <p>Помнит контекст, профиль и цели, чтобы не начинать разговор заново.</p>
-        </article>
-        <article class="feature">
-          <span class="feature-index">03</span>
-          <h3>Голос</h3>
-          <p>Принимает голосовые и превращает их в обычный диалог.</p>
-        </article>
-        <article class="feature">
-          <span class="feature-index">04</span>
-          <h3>Фото и картинки</h3>
-          <p>Понимает отправленные фото после подключения vision-ключа и умеет искать изображения из открытых источников.</p>
-        </article>
-        <article class="feature">
-          <span class="feature-index">05</span>
-          <h3>Стикеры</h3>
-          <p>Запоминает вайб пользовательских стикеров и использует их аккуратно, когда это уместно.</p>
-        </article>
-        <article class="feature">
-          <span class="feature-index">06</span>
-          <h3>Готов к росту</h3>
-          <p>Backend уже подготовлен: сайт и Telegram смогут работать через одну память.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="ecosystem" class="ecosystem">
-      <div class="section-copy">
-        <p class="eyebrow">Архитектура</p>
-        <h2>Один Рэй. Несколько входов. Одна память.</h2>
-        <p>Telegram уже работает как основной интерфейс. Сайт готов подключиться к API. WhatsApp и Instagram можно добавить позже через Meta API.</p>
-      </div>
-      <div class="system-map" aria-label="Каналы Рея">
-        <div class="node live">
-          <span>Telegram</span>
-          <strong>работает</strong>
-        </div>
-        <div class="connector"></div>
-        <div class="node core">
-          <span>Ray API</span>
-          <strong>общая логика</strong>
-        </div>
-        <div class="connector"></div>
-        <div class="node">
-          <span>Web</span>
-          <strong>готов к подключению</strong>
-        </div>
-        <div class="node muted-node">
-          <span>WhatsApp</span>
-          <strong>следующий этап</strong>
-        </div>
-        <div class="node muted-node">
-          <span>Instagram</span>
-          <strong>следующий этап</strong>
-        </div>
-      </div>
-    </section>
-
-    <section id="roadmap" class="roadmap">
-      <div class="section-copy wide">
-        <p class="eyebrow">Что дальше</p>
-        <h2>План, который можно реально выполнить.</h2>
-      </div>
-      <div class="timeline">
-        <div>
-          <span>Сейчас</span>
-          <p>Довести Telegram: фото, стикеры, короткий стиль, стабильная память.</p>
-        </div>
-        <div>
-          <span>После VM</span>
-          <p>Подключить сайт к Ray API и включить один web-чат с общей памятью.</p>
-        </div>
-        <div>
-          <span>Потом</span>
-          <p>Добавить аккаунты, историю, дневник, цели и web-профиль пользователя.</p>
-        </div>
-        <div>
-          <span>Рост</span>
-          <p>Подключить WhatsApp, Instagram и отдельный AI-слой, когда появится поддержка.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="final-cta">
+    <section id="stack" class="stack-section">
       <div>
-        <p class="eyebrow">Публичная версия</p>
-        <h2>Рэй уже можно показать.</h2>
-        <p>Сайт работает как витрина и демо. Следующий шаг — поднять backend на VM и подключить настоящий web-чат.</p>
+        <p class="eyebrow">Как это будет работать</p>
+        <h2>Telegram и сайт подключаются к одному Рэю.</h2>
       </div>
-      <a class="button primary" href="#demo">Попробовать чат</a>
+      <div class="stack-grid">
+        <article>
+          <span>01</span>
+          <strong>Telegram</strong>
+          <p>Основной канал: голос, стикеры, цели, память.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <strong>Ray API</strong>
+          <p>Общая логика и память для всех интерфейсов.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <strong>Web</strong>
+          <p>Этот сайт станет настоящим чатом после VM.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="next" class="next-section">
+      <div>
+        <p class="eyebrow">Следующий шаг</p>
+        <h2>Поднять backend, вставить URL в config.js — и сайт оживёт.</h2>
+        <p>Пока VM готовит друг, сайт работает как демо-интерфейс. После запуска API мы подключим `window.RAY_API_URL`, и web-чат будет использовать ту же память, что Telegram.</p>
+      </div>
+      <a class="button primary" href="#app">Вернуться к чату</a>
     </section>
   </main>
 
   <footer class="footer">
     <span>Рэй</span>
-    <span>AI-компаньон для фокуса, обучения и целей</span>
+    <span>Telegram + Web + общая память</span>
   </footer>
 
   <script src="config.js"></script>
