@@ -25,9 +25,12 @@
 
       <nav class="nav" aria-label="Разделы">
         <a href="#chat">Чат</a>
+        <a href="#install">Установка</a>
+        <a href="#about">Проект</a>
         <a href="#memory">Память</a>
         <a href="#goals">Цели</a>
         <a href="#ecosystem">Экосистема</a>
+        <a href="#contacts">Контакты</a>
       </nav>
 
       <div class="side-panel">
@@ -107,6 +110,70 @@
           <div>WhatsApp и Instagram</div>
         </div>
       </section>
+
+      <section class="install-section" id="install">
+        <div>
+          <p class="eyebrow">Установка</p>
+          <h2>Рэй работает в Telegram, браузере и как приложение на экране телефона или компьютера.</h2>
+          <p>Если кнопка установки не появилась сама, это нормально: iPhone, Android и ноутбуки показывают её в разных местах.</p>
+        </div>
+        <div class="steps">
+          <article>
+            <span>iPhone</span>
+            <p>Открой сайт в Safari, нажми “Поделиться”, затем “На экран Домой”.</p>
+          </article>
+          <article>
+            <span>Android</span>
+            <p>Открой сайт в Chrome, нажми меню с тремя точками, затем “Установить приложение”.</p>
+          </article>
+          <article>
+            <span>Компьютер</span>
+            <p>Открой сайт в Chrome или Edge и нажми значок установки в адресной строке.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="about-section" id="about">
+        <div>
+          <p class="eyebrow">О проекте</p>
+          <h2>Рэй создан как один помощник для разных привычек общения.</h2>
+        </div>
+        <div class="about-copy">
+          <p>В Telegram можно быстро написать без регистрации и установки. В Ray Web появляется полноценный интерфейс: чат, память, цели, приватность, спутник Рея и будущая синхронизация с другими каналами.</p>
+          <p>Для аккаунта логично оставить несколько вариантов входа: email и пароль, Google, Telegram, позже WhatsApp по коду. Так человек выбирает самый простой способ, а Рэй сохраняет одну память между устройствами.</p>
+        </div>
+      </section>
+
+      <section class="login-section" aria-label="Способы входа">
+        <article>
+          <strong>Email</strong>
+          <p>Классический логин и пароль для сайта и приложения.</p>
+        </article>
+        <article>
+          <strong>Google</strong>
+          <p>Быстрый вход для web и будущей мобильной версии.</p>
+        </article>
+        <article>
+          <strong>Telegram</strong>
+          <p>Вход через текущего бота без создания второго Telegram.</p>
+        </article>
+        <article>
+          <strong>WhatsApp</strong>
+          <p>Позже: вход по номеру и коду, когда будет WhatsApp-интеграция.</p>
+        </article>
+      </section>
+
+      <section class="contacts-section" id="contacts">
+        <div>
+          <p class="eyebrow">Контакты</p>
+          <h2>Связаться с Рэем можно там, где уже удобно.</h2>
+        </div>
+        <div class="contact-actions">
+          <a class="button primary" href="https://t.me/RayPersonai_bot">Telegram</a>
+          <a class="button ghost" href="https://github.com/Kaimo-ki/ray_site">GitHub сайта</a>
+          <a class="button ghost" href="https://github.com/Kaimo-ki/ray_bot">GitHub бота</a>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -126,6 +193,19 @@
       <button class="swatch rose" type="button" data-companion="rose" aria-label="Розовый"></button>
     </div>
   </section>
+
+  <div class="install-backdrop" id="installPanel" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="install-card">
+      <p class="eyebrow">Как скачать</p>
+      <h2 id="installTitle">Рэй устанавливается как приложение из браузера.</h2>
+      <div class="install-list">
+        <p><strong>iPhone:</strong> Safari → Поделиться → На экран Домой.</p>
+        <p><strong>Android:</strong> Chrome → ⋮ → Установить приложение.</p>
+        <p><strong>Ноутбук:</strong> Chrome или Edge → значок установки в адресной строке.</p>
+      </div>
+      <button class="button primary" type="button" id="closeInstall">Поняла</button>
+    </div>
+  </div>
 
   <div class="consent-backdrop" id="consentPanel" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="consent-card">
