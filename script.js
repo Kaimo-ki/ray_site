@@ -8,6 +8,7 @@ const openConsent = document.getElementById("openConsent");
 const memoryConsent = document.getElementById("memoryConsent");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
+const installApp = document.getElementById("installApp");
 const swatches = document.querySelectorAll("[data-companion]");
 
 const quickReplies = [
@@ -19,6 +20,7 @@ const quickReplies = [
 
 let companionMoveTimer = null;
 let dragState = null;
+let installPrompt = null;
 
 const addMessage = (text, type = "ray") => {
   const node = document.createElement("div");
@@ -99,6 +101,29 @@ const hideConsent = () => consentPanel.classList.remove("show");
 if (!readSetting("privacy_seen")) {
   showConsent();
 }
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  installApp.disabled = false;
+});
+
+installApp.addEventListener("click", async () => {
+  if (!installPrompt) {
+    addMessage("На телефоне открой меню браузера и выбери «На экран Домой». На компьютере установка появится в адресной строке.", "ray");
+    return;
+  }
+
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+});
 
 openConsent.addEventListener("click", showConsent);
 skipConsent.addEventListener("click", () => {
