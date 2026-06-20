@@ -330,6 +330,13 @@ h1 {
   gap: 12px;
 }
 
+.mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .companion {
   position: fixed;
   left: calc(100vw - 84px);
