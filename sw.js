@@ -1,15 +1,15 @@
-const CACHE_NAME = "ray-web-v1";
+const CACHE_NAME = "ray-web-v2";
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./script.js",
-  "./config.js",
-  "./manifest.webmanifest",
-  "./offline.html",
-  "./assets/ray-avatar.png",
-  "./assets/icon-192.png",
-  "./assets/icon-512.png",
+  "/ray_site/",
+  "/ray_site/index.html",
+  "/ray_site/styles.css",
+  "/ray_site/script.js",
+  "/ray_site/config.js",
+  "/ray_site/manifest.webmanifest",
+  "/ray_site/offline.html",
+  "/ray_site/assets/ray-avatar.png",
+  "/ray_site/assets/icon-192.png",
+  "/ray_site/assets/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -33,7 +33,7 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(event.request).then((cached) => (
-      cached || fetch(event.request).catch(() => caches.match("./offline.html"))
+      cached || fetch(event.request).catch(() => caches.match("/ray_site/offline.html"))
     ))
   );
 });

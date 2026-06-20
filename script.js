@@ -12,6 +12,7 @@ const toggleCompanion = document.getElementById("toggleCompanion");
 const installApp = document.getElementById("installApp");
 const installPanel = document.getElementById("installPanel");
 const closeInstall = document.getElementById("closeInstall");
+const installStatus = document.getElementById("installStatus");
 const swatches = document.querySelectorAll("[data-companion]");
 
 const quickReplies = [
@@ -24,6 +25,12 @@ const quickReplies = [
 let companionMoveTimer = null;
 let dragState = null;
 let installPrompt = null;
+
+const isStandalone = () => (
+  window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+);
+
+const isIos = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
 const addMessage = (text, type = "ray") => {
   const node = document.createElement("div");
@@ -114,7 +121,7 @@ if (!readSetting("privacy_seen")) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("/ray_site/sw.js", { scope: "/ray_site/" }).catch(() => {});
   });
 }
 
@@ -122,16 +129,35 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installPrompt = event;
   installApp.disabled = false;
+  installStatus.textContent = "Установка доступна. Нажми «Установить», и браузер откроет системное окно.";
+});
+
+window.addEventListener("appinstalled", () => {
+  installPrompt = null;
+  installStatus.textContent = "Рэй установлен. Его можно открыть с экрана телефона или из приложений на компьютере.";
+  installApp.textContent = "Установлено";
 });
 
 installApp.addEventListener("click", async () => {
+  if (isStandalone()) {
+    installStatus.textContent = "Рэй уже открыт как установленное приложение.";
+    showInstall();
+    return;
+  }
+
   if (!installPrompt) {
+    installStatus.textContent = isIos()
+      ? "На iPhone установка идёт через Safari: Поделиться → На экран Домой."
+      : "Если системное окно не появилось, открой сайт в Chrome или Edge и нажми значок установки в адресной строке.";
     showInstall();
     return;
   }
 
   installPrompt.prompt();
-  await installPrompt.userChoice;
+  const choice = await installPrompt.userChoice;
+  installStatus.textContent = choice.outcome === "accepted"
+    ? "Установка началась. После этого Рэй появится как приложение."
+    : "Установку отменили. Можно попробовать ещё раз позже.";
   installPrompt = null;
 });
 

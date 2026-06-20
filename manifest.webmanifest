@@ -1,25 +1,57 @@
 {
+  "id": "/ray_site/",
   "name": "Рэй",
   "short_name": "Рэй",
   "description": "Персональный AI-помощник для общения, целей, учебы и фокуса.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/ray_site/",
+  "scope": "/ray_site/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
   "background_color": "#07110f",
   "theme_color": "#07110f",
+  "categories": ["productivity", "education", "lifestyle"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
-      "src": "assets/icon-192.png",
+      "src": "/ray_site/assets/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "assets/icon-512.png",
+      "src": "/ray_site/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/ray_site/assets/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/ray_site/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Открыть чат",
+      "short_name": "Чат",
+      "url": "/ray_site/#chat",
+      "icons": [{ "src": "/ray_site/assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Настройки приватности",
+      "short_name": "Приватность",
+      "url": "/ray_site/#privacy",
+      "icons": [{ "src": "/ray_site/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
