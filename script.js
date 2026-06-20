@@ -6,6 +6,7 @@ const acceptConsent = document.getElementById("acceptConsent");
 const skipConsent = document.getElementById("skipConsent");
 const openConsent = document.getElementById("openConsent");
 const memoryConsent = document.getElementById("memoryConsent");
+const companionConsent = document.getElementById("companionConsent");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
 const installApp = document.getElementById("installApp");
@@ -78,7 +79,7 @@ const restoreCompanionPosition = () => {
 };
 
 const randomCompanionMove = () => {
-  if (readSetting("memory_allowed") !== "yes" || companion.classList.contains("hidden")) return;
+  if (readSetting("companion_allowed") !== "yes" || companion.classList.contains("hidden")) return;
 
   const bounds = companionBounds();
   const x = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
@@ -92,15 +93,20 @@ const randomCompanionMove = () => {
 
 const startCompanionMovement = () => {
   window.clearInterval(companionMoveTimer);
-  if (readSetting("memory_allowed") === "yes") {
+  if (readSetting("companion_allowed") === "yes") {
     companionMoveTimer = window.setInterval(randomCompanionMove, 11000);
   }
 };
 
-const showConsent = () => consentPanel.classList.add("show");
+const showConsent = () => {
+  memoryConsent.checked = readSetting("memory_allowed") === "yes";
+  companionConsent.checked = readSetting("companion_allowed") === "yes";
+  consentPanel.classList.add("show");
+};
 const hideConsent = () => consentPanel.classList.remove("show");
 const showInstall = () => installPanel.classList.add("show");
 const hideInstall = () => installPanel.classList.remove("show");
+const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
 if (!readSetting("privacy_seen")) {
   showConsent();
@@ -135,6 +141,8 @@ openConsent.addEventListener("click", showConsent);
 skipConsent.addEventListener("click", () => {
   rememberSetting("privacy_seen", "yes");
   rememberSetting("memory_allowed", "no");
+  rememberSetting("companion_allowed", "no");
+  setCompanionVisible(false);
   hideConsent();
   startCompanionMovement();
 });
@@ -142,9 +150,11 @@ skipConsent.addEventListener("click", () => {
 acceptConsent.addEventListener("click", () => {
   rememberSetting("privacy_seen", "yes");
   rememberSetting("memory_allowed", memoryConsent.checked ? "yes" : "no");
+  rememberSetting("companion_allowed", companionConsent.checked ? "yes" : "no");
+  setCompanionVisible(companionConsent.checked);
   hideConsent();
   startCompanionMovement();
-  if (memoryConsent.checked) randomCompanionMove();
+  if (companionConsent.checked) randomCompanionMove();
 });
 
 const applyCompanionColor = (color) => {
@@ -166,6 +176,10 @@ const pointerPosition = (event) => {
 };
 
 companion.addEventListener("pointerdown", (event) => {
+  if (!companionAllowed()) {
+    showConsent();
+    return;
+  }
   if (event.button && event.button !== 0) return;
   const point = pointerPosition(event);
   const rect = companion.getBoundingClientRect();
@@ -203,7 +217,7 @@ window.addEventListener("resize", () => {
 });
 
 applyCompanionColor(readSetting("companion_color") || "teal");
-setCompanionVisible(readSetting("companion_visible") !== "no");
+setCompanionVisible(companionAllowed() && readSetting("companion_visible") !== "no");
 restoreCompanionPosition();
 startCompanionMovement();
 
@@ -212,6 +226,10 @@ swatches.forEach((button) => {
 });
 
 toggleCompanion.addEventListener("click", () => {
+  if (!companionAllowed()) {
+    showConsent();
+    return;
+  }
   setCompanionVisible(companion.classList.contains("hidden"));
 });
 

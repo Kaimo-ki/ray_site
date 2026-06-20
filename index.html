@@ -184,7 +184,7 @@
   <section class="companion-controls" aria-label="Настройки спутника Рея">
     <div>
       <strong>Спутник Рея</strong>
-      <p>Можно включить, выключить и выбрать цвет.</p>
+      <p>Свободное движение включается только с разрешения.</p>
     </div>
     <div class="swatches">
       <button class="swatch teal active" type="button" data-companion="teal" aria-label="Бирюзовый"></button>
@@ -210,15 +210,20 @@
   <div class="consent-backdrop" id="consentPanel" role="dialog" aria-modal="true" aria-labelledby="consentTitle">
     <div class="consent-card">
       <p class="eyebrow">Приватность</p>
-      <h2 id="consentTitle">Рэй спросит разрешение перед памятью.</h2>
-      <p>Без согласия сайт работает как обычный чат-превью. Если разрешить память, Рэй сможет учитывать цели, стиль общения и важные заметки.</p>
+      <h2 id="consentTitle">Ты сам решаешь, что Рэю можно.</h2>
+      <p>Рэй не читает ноутбук, телефон, файлы, экран или другие приложения. Он видит только сообщения и материалы, которые ты сам отправляешь в чат.</p>
+      <p>Если не дать разрешения, Рэй всё равно работает как помощник в чате. Свободный спутник и память можно включить позже в настройках приватности.</p>
       <label class="check-row">
         <input type="checkbox" id="memoryConsent">
-        <span>Разрешаю Рэю сохранять важное для персональных ответов.</span>
+        <span>Разрешаю Рэю сохранять важное для персональных ответов: цели, стиль общения и заметки.</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="companionConsent">
+        <span>Разрешаю спутнику Рея свободно двигаться внутри установленного приложения или сайта.</span>
       </label>
       <div class="consent-actions">
-        <button class="button primary" type="button" id="acceptConsent">Продолжить</button>
-        <button class="button ghost" type="button" id="skipConsent">Без памяти</button>
+        <button class="button primary" type="button" id="acceptConsent">Сохранить выбор</button>
+        <button class="button ghost" type="button" id="skipConsent">Только чат</button>
       </div>
     </div>
   </div>
