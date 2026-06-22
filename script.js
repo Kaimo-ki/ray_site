@@ -9,6 +9,9 @@ const skipConsent = document.getElementById("skipConsent");
 const openConsent = document.getElementById("openConsent");
 const memoryConsent = document.getElementById("memoryConsent");
 const companionConsent = document.getElementById("companionConsent");
+const apiUrlInput = document.getElementById("apiUrlInput");
+const saveApiUrl = document.getElementById("saveApiUrl");
+const apiStatus = document.getElementById("apiStatus");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
 const installApp = document.getElementById("installApp");
@@ -42,6 +45,8 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 const rememberSetting = (key, value) => localStorage.setItem(`ray_${key}`, value);
 const readSetting = (key) => localStorage.getItem(`ray_${key}`);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const cleanUrl = (value) => value.trim().replace(/\/+$/, "");
+const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL || "");
 
 const isStandalone = () => (
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
@@ -58,6 +63,12 @@ const showOnboardingStep = (step) => {
 const collectPurposes = () => (
   [...document.querySelectorAll(".purpose-grid input:checked")].map((item) => item.value)
 );
+
+const setApiStatus = (text, isOk = false) => {
+  if (!apiStatus) return;
+  apiStatus.textContent = text;
+  apiStatus.classList.toggle("ok", isOk);
+};
 
 const addMessage = (text, type = "ray", target = messages) => {
   const node = document.createElement("div");
@@ -91,11 +102,11 @@ const localRayReply = (text) => {
 const askRay = async (text, target = messages) => {
   addMessage(text, "user", target);
   const thinking = addMessage("Думаю...", "ray", target);
-  const apiUrl = window.RAY_API_URL;
+  const apiUrl = getApiUrl();
 
   if (apiUrl) {
     try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/chat`, {
+      const response = await fetch(`${apiUrl}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,6 +114,7 @@ const askRay = async (text, target = messages) => {
           message: text,
         }),
       });
+      if (!response.ok) throw new Error(`Ray API ${response.status}`);
       const data = await response.json();
       if (data.session_id) rememberSetting("session_id", data.session_id);
       const reply = data.reply || "Я рядом. Скажи чуть подробнее?";
@@ -119,6 +131,30 @@ const askRay = async (text, target = messages) => {
     thinking.textContent = reply;
     speak(reply);
   }, 320);
+};
+
+const syncProfile = async () => {
+  const apiUrl = getApiUrl();
+  if (!apiUrl || readSetting("memory_allowed") !== "yes") return;
+
+  const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
+  rememberSetting("session_id", sessionId);
+
+  try {
+    await fetch(`${apiUrl}/profile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        name: readSetting("profile_name") || "",
+        purposes: JSON.parse(readSetting("purposes") || "[]"),
+        memory_allowed: readSetting("memory_allowed") === "yes",
+        companion_allowed: readSetting("companion_allowed") === "yes",
+      }),
+    });
+  } catch (error) {
+    setApiStatus("API сохранён, но профиль пока не отправился. После деплоя Render попробуем снова.");
+  }
 };
 
 const startVoiceInput = (targetInput, button) => {
@@ -207,6 +243,11 @@ const startCompanionMovement = () => {
 const showConsent = () => {
   memoryConsent.checked = readSetting("memory_allowed") === "yes";
   companionConsent.checked = readSetting("companion_allowed") === "yes";
+  if (apiUrlInput) apiUrlInput.value = getApiUrl();
+  setApiStatus(getApiUrl()
+    ? "Ray API подключён. Чат будет отвечать через backend."
+    : "Ray API ещё не подключён. Чат работает локально, без общей памяти между устройствами."
+  , Boolean(getApiUrl()));
   consentPanel.classList.add("show");
 };
 
@@ -270,7 +311,7 @@ nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => showOnboardingStep(onboardingStep + 1));
 });
 
-finishOnboarding.addEventListener("click", () => {
+finishOnboarding.addEventListener("click", async () => {
   rememberSetting("onboarding_done", "yes");
   rememberSetting("privacy_seen", "yes");
   rememberSetting("profile_name", onboardingName.value.trim());
@@ -282,6 +323,7 @@ finishOnboarding.addEventListener("click", () => {
   startCompanionMovement();
   addMessage("Готово. Я здесь, можно писать или говорить.", "ray");
   speak("Готово. Я здесь.");
+  await syncProfile();
 });
 
 skipConsent.addEventListener("click", () => {
@@ -301,6 +343,32 @@ acceptConsent.addEventListener("click", () => {
   hideConsent();
   startCompanionMovement();
   if (companionConsent.checked) randomCompanionMove();
+  syncProfile();
+});
+
+saveApiUrl?.addEventListener("click", async () => {
+  const value = cleanUrl(apiUrlInput.value || "");
+  if (value && !/^https?:\/\//i.test(value)) {
+    setApiStatus("Ссылка API должна начинаться с https:// или http://");
+    return;
+  }
+  if (value) rememberSetting("api_url", value);
+  else localStorage.removeItem("ray_api_url");
+
+  if (!value) {
+    setApiStatus("API отключён. Рэй будет отвечать локально, без общей памяти.");
+    return;
+  }
+
+  setApiStatus("Проверяю Ray API...");
+  try {
+    const response = await fetch(`${value}/health`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    setApiStatus("Ray API подключён. Теперь чат отвечает через backend.", true);
+    await syncProfile();
+  } catch (error) {
+    setApiStatus("Ссылка сохранена, но API сейчас не отвечает. Проверь Render URL и переменные.");
+  }
 });
 
 const applyCompanionColor = (color) => {

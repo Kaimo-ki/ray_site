@@ -103,6 +103,22 @@ button, input { font: inherit; }
   outline: none;
 }
 
+.compact-field {
+  margin: 18px 0 10px;
+}
+
+.api-status {
+  min-height: 22px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.api-status.ok {
+  color: var(--accent);
+}
+
 .guide-list,
 .purpose-grid {
   display: grid;

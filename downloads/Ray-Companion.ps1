@@ -7,12 +7,51 @@ $appDir = Join-Path $env:LOCALAPPDATA "RayWeb"
 $iconPath = Join-Path $appDir "ray.ico"
 $configPath = Join-Path $appDir "companion.json"
 $botUrl = ""
+$apiUrl = ""
+$sessionId = "windows-companion"
 
 if (Test-Path $configPath) {
     try {
         $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
         if ($config.botUrl) { $botUrl = [string]$config.botUrl }
+        if ($config.apiUrl) { $apiUrl = ([string]$config.apiUrl).TrimEnd("/") }
+        if ($config.sessionId) { $sessionId = [string]$config.sessionId }
     } catch { }
+}
+
+function Save-RayConfig {
+    try {
+        if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Force -Path $appDir | Out-Null }
+        $config = @{
+            botUrl = $botUrl
+            siteUrl = $appUrl
+            apiUrl = $apiUrl
+            sessionId = $sessionId
+        } | ConvertTo-Json
+        Set-Content -LiteralPath $configPath -Value $config -Encoding UTF8
+    } catch { }
+}
+
+function Ask-RayApi([string]$text) {
+    if (-not $apiUrl -or $apiUrl.Trim().Length -eq 0) {
+        return "Ray API пока не подключён. После Render вставь ссылку API в настройки сайта или в %LOCALAPPDATA%\RayWeb\companion.json."
+    }
+
+    try {
+        $body = @{
+            message = $text
+            session_id = $sessionId
+        } | ConvertTo-Json
+        $response = Invoke-RestMethod -Uri "$apiUrl/chat" -Method Post -ContentType "application/json" -Body $body -TimeoutSec 45
+        if ($response.session_id) {
+            $script:sessionId = [string]$response.session_id
+            Save-RayConfig
+        }
+        if ($response.reply) { return [string]$response.reply }
+        return "Я рядом. Скажи чуть подробнее?"
+    } catch {
+        return "Не получилось достучаться до Ray API. Проверь Render-ссылку и переменные окружения."
+    }
 }
 
 function Open-RayWeb {
@@ -40,7 +79,7 @@ function Open-RayBot {
 function Show-ChatWindow {
     $chat = New-Object System.Windows.Forms.Form
     $chat.Text = "Ray"
-    $chat.Size = New-Object System.Drawing.Size(420, 260)
+    $chat.Size = New-Object System.Drawing.Size(460, 420)
     $chat.StartPosition = "CenterScreen"
     $chat.TopMost = $true
     $chat.BackColor = [System.Drawing.Color]::FromArgb(7, 17, 15)
@@ -48,54 +87,76 @@ function Show-ChatWindow {
     $chat.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Write to Ray. I will copy the text and open Telegram."
+    $label.Text = "Write to Ray. If Ray API is connected, I will answer here."
     $label.AutoSize = $false
     $label.Location = New-Object System.Drawing.Point(16, 14)
-    $label.Size = New-Object System.Drawing.Size(370, 38)
+    $label.Size = New-Object System.Drawing.Size(410, 38)
 
     $box = New-Object System.Windows.Forms.TextBox
     $box.Multiline = $true
     $box.Location = New-Object System.Drawing.Point(16, 58)
-    $box.Size = New-Object System.Drawing.Size(370, 82)
+    $box.Size = New-Object System.Drawing.Size(410, 76)
+
+    $answer = New-Object System.Windows.Forms.TextBox
+    $answer.Multiline = $true
+    $answer.ReadOnly = $true
+    $answer.ScrollBars = "Vertical"
+    $answer.Location = New-Object System.Drawing.Point(16, 146)
+    $answer.Size = New-Object System.Drawing.Size(410, 128)
+    $answer.BackColor = [System.Drawing.Color]::FromArgb(13, 26, 23)
+    $answer.ForeColor = [System.Drawing.Color]::White
+    $answer.BorderStyle = "FixedSingle"
+    if ($apiUrl) {
+        $answer.Text = "Ray API connected. Ask me here."
+    } else {
+        $answer.Text = "Ray API is not connected yet. I can open Ray Web or Telegram, but in-place AI needs the Render API URL."
+    }
 
     $send = New-Object System.Windows.Forms.Button
-    $send.Text = "Write"
-    $send.Location = New-Object System.Drawing.Point(16, 158)
-    $send.Size = New-Object System.Drawing.Size(112, 34)
+    $send.Text = "Ask"
+    $send.Location = New-Object System.Drawing.Point(16, 292)
+    $send.Size = New-Object System.Drawing.Size(92, 34)
     $send.Add_Click({
-        if ($box.Text.Trim().Length -gt 0) {
-            [System.Windows.Forms.Clipboard]::SetText($box.Text.Trim())
+        $text = $box.Text.Trim()
+        if ($text.Length -gt 0) {
+            $answer.Text = "Thinking..."
+            $chat.Refresh()
+            $answer.Text = Ask-RayApi $text
         }
-        Open-RayBot
-        $chat.Close()
     })
 
     $voice = New-Object System.Windows.Forms.Button
     $voice.Text = "Voice"
-    $voice.Location = New-Object System.Drawing.Point(140, 158)
-    $voice.Size = New-Object System.Drawing.Size(112, 34)
+    $voice.Location = New-Object System.Drawing.Point(118, 292)
+    $voice.Size = New-Object System.Drawing.Size(92, 34)
     $voice.Add_Click({
-        Open-RayBot
-        $chat.Close()
+        $answer.Text = "Voice in the Windows companion needs the next native STT step. For now use Telegram voice or the Web microphone."
     })
 
     $web = New-Object System.Windows.Forms.Button
     $web.Text = "Ray Web"
-    $web.Location = New-Object System.Drawing.Point(264, 158)
-    $web.Size = New-Object System.Drawing.Size(112, 34)
+    $web.Location = New-Object System.Drawing.Point(220, 292)
+    $web.Size = New-Object System.Drawing.Size(92, 34)
     $web.Add_Click({
         Open-RayWeb
-        $chat.Close()
+    })
+
+    $telegram = New-Object System.Windows.Forms.Button
+    $telegram.Text = "Telegram"
+    $telegram.Location = New-Object System.Drawing.Point(322, 292)
+    $telegram.Size = New-Object System.Drawing.Size(104, 34)
+    $telegram.Add_Click({
+        Open-RayBot
     })
 
     $hint = New-Object System.Windows.Forms.Label
-    $hint.Text = "If Telegram opens without Ray chat, set the bot username during install."
+    $hint.Text = "Tip: set apiUrl in companion.json after Render deploy for real in-place answers."
     $hint.AutoSize = $false
-    $hint.Location = New-Object System.Drawing.Point(16, 202)
-    $hint.Size = New-Object System.Drawing.Size(370, 36)
+    $hint.Location = New-Object System.Drawing.Point(16, 340)
+    $hint.Size = New-Object System.Drawing.Size(410, 36)
     $hint.ForeColor = [System.Drawing.Color]::FromArgb(168, 182, 176)
 
-    $chat.Controls.AddRange(@($label, $box, $send, $voice, $web, $hint))
+    $chat.Controls.AddRange(@($label, $box, $answer, $send, $voice, $web, $telegram, $hint))
     [void]$chat.ShowDialog()
 }
 
@@ -166,10 +227,12 @@ $form.Add_Paint({
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $openChat = $menu.Items.Add("Write to Ray")
 $openChat.Add_Click({ Show-ChatWindow })
-$openVoice = $menu.Items.Add("Voice in Telegram")
-$openVoice.Add_Click({ Open-RayBot })
+$openVoice = $menu.Items.Add("Voice note")
+$openVoice.Add_Click({ Show-ChatWindow })
 $openWeb = $menu.Items.Add("Open Ray Web")
 $openWeb.Add_Click({ Open-RayWeb })
+$openBot = $menu.Items.Add("Open Telegram")
+$openBot.Add_Click({ Open-RayBot })
 $menu.Items.Add("-") | Out-Null
 $exit = $menu.Items.Add("Exit")
 $exit.Add_Click({ $form.Close() })

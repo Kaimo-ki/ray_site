@@ -1,4 +1,4 @@
-const CACHE_NAME = "ray-web-v3";
+const CACHE_NAME = "ray-web-v4";
 const ASSETS = [
   "/ray_site/",
   "/ray_site/index.html",
