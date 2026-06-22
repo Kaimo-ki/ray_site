@@ -3,9 +3,17 @@ Add-Type -AssemblyName System.Drawing
 
 $ErrorActionPreference = "SilentlyContinue"
 $appUrl = "https://kaimo-ki.github.io/ray_site/"
-$botUrl = "https://t.me/RayPersonai_bot"
 $appDir = Join-Path $env:LOCALAPPDATA "RayWeb"
 $iconPath = Join-Path $appDir "ray.ico"
+$configPath = Join-Path $appDir "companion.json"
+$botUrl = ""
+
+if (Test-Path $configPath) {
+    try {
+        $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+        if ($config.botUrl) { $botUrl = [string]$config.botUrl }
+    } catch { }
+}
 
 function Open-RayWeb {
     $edge = Join-Path ${env:ProgramFiles(x86)} "Microsoft\Edge\Application\msedge.exe"
@@ -22,7 +30,11 @@ function Open-RayWeb {
 }
 
 function Open-RayBot {
-    Start-Process $botUrl
+    if ($botUrl -and $botUrl.Trim().Length -gt 0) {
+        Start-Process $botUrl
+    } else {
+        Start-Process "tg://"
+    }
 }
 
 function Show-ChatWindow {
@@ -36,7 +48,7 @@ function Show-ChatWindow {
     $chat.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Write to Ray. I will copy the text and open the Telegram bot."
+    $label.Text = "Write to Ray. I will copy the text and open Telegram."
     $label.AutoSize = $false
     $label.Location = New-Object System.Drawing.Point(16, 14)
     $label.Size = New-Object System.Drawing.Size(370, 38)
@@ -77,7 +89,7 @@ function Show-ChatWindow {
     })
 
     $hint = New-Object System.Windows.Forms.Label
-    $hint.Text = "Direct answers here need Ray API backend. For now Ray answers in Telegram."
+    $hint.Text = "If Telegram opens without Ray chat, set the bot username during install."
     $hint.AutoSize = $false
     $hint.Location = New-Object System.Drawing.Point(16, 202)
     $hint.Size = New-Object System.Drawing.Size(370, 36)
@@ -91,24 +103,65 @@ $form = New-Object System.Windows.Forms.Form
 $form.Text = "Ray Companion"
 $form.FormBorderStyle = "None"
 $form.StartPosition = "Manual"
-$form.Size = New-Object System.Drawing.Size(68, 68)
+$form.Size = New-Object System.Drawing.Size(82, 82)
 $form.Location = New-Object System.Drawing.Point(40, 220)
 $form.TopMost = $true
 $form.ShowInTaskbar = $false
-$form.BackColor = [System.Drawing.Color]::FromArgb(7, 17, 15)
+$form.BackColor = [System.Drawing.Color]::Magenta
+$form.TransparencyKey = [System.Drawing.Color]::Magenta
+$form.DoubleBuffered = $true
 
 $path = New-Object System.Drawing.Drawing2D.GraphicsPath
-$path.AddEllipse(0, 0, 68, 68)
+$path.AddEllipse(0, 0, 82, 82)
 $form.Region = New-Object System.Drawing.Region($path)
 
-$button = New-Object System.Windows.Forms.Label
-$button.Text = "R"
-$button.Dock = "Fill"
-$button.TextAlign = "MiddleCenter"
-$button.Font = New-Object System.Drawing.Font("Segoe UI", 22, [System.Drawing.FontStyle]::Bold)
-$button.ForeColor = [System.Drawing.Color]::FromArgb(244, 247, 245)
-$button.BackColor = [System.Drawing.Color]::FromArgb(50, 214, 176)
-$form.Controls.Add($button)
+$form.Add_Paint({
+    param($sender, $event)
+    $g = $event.Graphics
+    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+
+    $outer = New-Object System.Drawing.Rectangle(2, 2, 78, 78)
+    $inner = New-Object System.Drawing.Rectangle(17, 17, 48, 48)
+    $glow = New-Object System.Drawing.Drawing2D.PathGradientBrush(
+        [System.Drawing.Point[]]@(
+            (New-Object System.Drawing.Point(41, 2)),
+            (New-Object System.Drawing.Point(80, 41)),
+            (New-Object System.Drawing.Point(41, 80)),
+            (New-Object System.Drawing.Point(2, 41))
+        )
+    )
+    $glow.CenterColor = [System.Drawing.Color]::FromArgb(170, 50, 214, 176)
+    $glow.SurroundColors = [System.Drawing.Color[]]@([System.Drawing.Color]::FromArgb(0, 50, 214, 176))
+    $g.FillEllipse($glow, $outer)
+    $glow.Dispose()
+
+    $bg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(36, 9, 24, 22))
+    $g.FillEllipse($bg, 9, 9, 64, 64)
+    $bg.Dispose()
+
+    $core = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+        $inner,
+        [System.Drawing.Color]::FromArgb(50, 214, 176),
+        [System.Drawing.Color]::FromArgb(111, 183, 255),
+        45
+    )
+    $g.FillEllipse($core, $inner)
+    $core.Dispose()
+
+    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(210, 244, 247, 245), 2)
+    $g.DrawEllipse($pen, 17, 17, 48, 48)
+    $pen.Dispose()
+
+    $font = New-Object System.Drawing.Font("Segoe UI", 19, [System.Drawing.FontStyle]::Bold)
+    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $format = New-Object System.Drawing.StringFormat
+    $format.Alignment = [System.Drawing.StringAlignment]::Center
+    $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+    $g.DrawString("R", $font, $brush, (New-Object System.Drawing.RectangleF(17, 14, 48, 52)), $format)
+    $brush.Dispose()
+    $font.Dispose()
+    $format.Dispose()
+})
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $openChat = $menu.Items.Add("Write to Ray")
@@ -121,19 +174,18 @@ $menu.Items.Add("-") | Out-Null
 $exit = $menu.Items.Add("Exit")
 $exit.Add_Click({ $form.Close() })
 $form.ContextMenuStrip = $menu
-$button.ContextMenuStrip = $menu
 
 $dragging = $false
 $dragOffset = New-Object System.Drawing.Point(0, 0)
 
-$button.Add_MouseDown({
+$form.Add_MouseDown({
     if ($_.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
         $script:dragging = $true
         $script:dragOffset = $_.Location
     }
 })
 
-$button.Add_MouseMove({
+$form.Add_MouseMove({
     if ($script:dragging) {
         $screenPoint = [System.Windows.Forms.Control]::MousePosition
         $form.Location = New-Object System.Drawing.Point(
@@ -143,11 +195,11 @@ $button.Add_MouseMove({
     }
 })
 
-$button.Add_MouseUp({
+$form.Add_MouseUp({
     $script:dragging = $false
 })
 
-$button.Add_DoubleClick({
+$form.Add_DoubleClick({
     Show-ChatWindow
 })
 
