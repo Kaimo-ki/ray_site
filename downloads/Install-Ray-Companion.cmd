@@ -6,13 +6,8 @@ set "ICON_FILE=%APP_DIR%\ray.ico"
 
 if not exist "%APP_DIR%" mkdir "%APP_DIR%"
 
-echo.
-echo Telegram bot username.
-echo Default: rey_helper_bot
-set /p BOT_USERNAME=Bot username without @, or press Enter for default: 
-if "%BOT_USERNAME%"=="" set "BOT_USERNAME=rey_helper_bot"
-set "BOT_URL="
-if not "%BOT_USERNAME%"=="" set "BOT_URL=https://t.me/%BOT_USERNAME%"
+set "BOT_USERNAME=rey_helper_bot"
+set "BOT_URL=https://t.me/%BOT_USERNAME%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://kaimo-ki.github.io/ray_site/downloads/Ray-Companion.ps1' -OutFile '%SCRIPT_FILE%' -UseBasicParsing"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -Uri 'https://kaimo-ki.github.io/ray_site/downloads/ray.ico' -OutFile '%ICON_FILE%' -UseBasicParsing } catch { }"
