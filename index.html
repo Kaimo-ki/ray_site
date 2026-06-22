@@ -77,6 +77,8 @@
 
           <form class="composer" id="chatForm">
             <input id="chatInput" type="text" autocomplete="off" placeholder="Напиши Рэю мысль, вопрос или цель">
+            <button class="tool-button" type="button" id="voiceInput" aria-label="Голосовой ввод">🎙</button>
+            <button class="tool-button" type="button" id="speakToggle" aria-label="Озвучка ответа">🔊</button>
             <button type="submit">Отправить</button>
           </form>
         </div>
@@ -214,6 +216,21 @@
       <button class="swatch blue" type="button" data-companion="blue" aria-label="Синий"></button>
       <button class="swatch rose" type="button" data-companion="rose" aria-label="Розовый"></button>
     </div>
+  </section>
+
+  <section class="quick-chat" id="quickChat" aria-label="Быстрый чат с Рэем">
+    <div class="quick-chat-top">
+      <strong>Рэй</strong>
+      <button class="icon-button" type="button" id="closeQuickChat" aria-label="Закрыть быстрый чат">×</button>
+    </div>
+    <div class="quick-chat-body" id="quickChatBody">
+      <div class="message ray">Я здесь. Напиши или нажми микрофон.</div>
+    </div>
+    <form class="quick-composer" id="quickChatForm">
+      <input id="quickChatInput" type="text" autocomplete="off" placeholder="Спросить Рэя">
+      <button class="tool-button" type="button" id="quickVoiceInput" aria-label="Голосовой ввод">🎙</button>
+      <button type="submit">→</button>
+    </form>
   </section>
 
   <div class="install-backdrop" id="installPanel" role="dialog" aria-modal="true" aria-labelledby="installTitle">

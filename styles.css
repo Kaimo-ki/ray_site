@@ -194,7 +194,7 @@ h1 {
 
 .composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 46px 46px auto;
   gap: 10px;
   padding: 16px;
   border-top: 1px solid var(--line);
@@ -220,6 +220,21 @@ h1 {
   color: #151006;
   font-weight: 800;
   cursor: pointer;
+}
+
+.composer .tool-button,
+.quick-composer .tool-button {
+  width: 46px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.07);
+  color: var(--text);
+}
+
+.tool-button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #03110d;
 }
 
 .workbench {
@@ -388,6 +403,70 @@ body.companion-rose { --accent: #ff7ab6; }
   backdrop-filter: blur(16px);
 }
 
+.quick-chat {
+  position: fixed;
+  right: 24px;
+  bottom: 112px;
+  z-index: 12;
+  width: min(360px, calc(100vw - 32px));
+  display: none;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(7,17,15,.94);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.quick-chat.show { display: block; }
+
+.quick-chat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.quick-chat-body {
+  max-height: 260px;
+  min-height: 120px;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quick-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px 42px;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.quick-composer input {
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(0,0,0,.18);
+  outline: none;
+}
+
+.quick-composer button {
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent-2);
+  color: #151006;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .swatches { display: flex; gap: 8px; }
 .swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .swatch.active { border-color: #fff; }
@@ -464,6 +543,8 @@ body.companion-rose { --accent: #ff7ab6; }
   .login-section { grid-template-columns: 1fr; }
   .composer { grid-template-columns: 1fr; }
   .composer button { width: 100%; }
+  .composer .tool-button { width: 100%; }
+  .quick-chat { left: 16px; right: 16px; bottom: 112px; width: auto; }
   .companion-controls { left: 16px; right: 16px; bottom: 16px; justify-content: space-between; }
   .companion { left: calc(100vw - 80px); top: calc(100vh - 178px); }
 }

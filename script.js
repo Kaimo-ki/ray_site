@@ -1,6 +1,8 @@
 const form = document.getElementById("chatForm");
 const input = document.getElementById("chatInput");
 const messages = document.getElementById("messages");
+const voiceInput = document.getElementById("voiceInput");
+const speakToggle = document.getElementById("speakToggle");
 const consentPanel = document.getElementById("consentPanel");
 const acceptConsent = document.getElementById("acceptConsent");
 const skipConsent = document.getElementById("skipConsent");
@@ -14,17 +16,23 @@ const installPanel = document.getElementById("installPanel");
 const closeInstall = document.getElementById("closeInstall");
 const installStatus = document.getElementById("installStatus");
 const swatches = document.querySelectorAll("[data-companion]");
-
-const quickReplies = [
-  "Понял. Давай коротко: что главное прямо сейчас?",
-  "Ок. Я бы начал с одного маленького шага на сегодня.",
-  "Слышу. Хочешь, разложу это на план или просто побуду рядом?",
-  "Давай сделаем проще: цель, срок и первый шаг.",
-];
+const quickChat = document.getElementById("quickChat");
+const quickChatBody = document.getElementById("quickChatBody");
+const quickChatForm = document.getElementById("quickChatForm");
+const quickChatInput = document.getElementById("quickChatInput");
+const quickVoiceInput = document.getElementById("quickVoiceInput");
+const closeQuickChat = document.getElementById("closeQuickChat");
 
 let companionMoveTimer = null;
 let dragState = null;
 let installPrompt = null;
+let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const rememberSetting = (key, value) => localStorage.setItem(`ray_${key}`, value);
+const readSetting = (key) => localStorage.getItem(`ray_${key}`);
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const isStandalone = () => (
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
@@ -32,18 +40,86 @@ const isStandalone = () => (
 
 const isIos = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
-const addMessage = (text, type = "ray") => {
+const addMessage = (text, type = "ray", target = messages) => {
   const node = document.createElement("div");
   node.className = `message ${type}`;
   node.textContent = text;
-  messages.appendChild(node);
-  messages.scrollTop = messages.scrollHeight;
+  target.appendChild(node);
+  target.scrollTop = target.scrollHeight;
+  return node;
 };
 
-const rememberSetting = (key, value) => localStorage.setItem(`ray_${key}`, value);
-const readSetting = (key) => localStorage.getItem(`ray_${key}`);
+const speak = (text) => {
+  if (!voiceEnabled || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ru-RU";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+};
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const localRayReply = (text) => {
+  const lower = text.toLowerCase();
+  if (lower.includes("привет") || lower.includes("хай")) return "Привет. Я рядом. Что делаем?";
+  if (lower.includes("цель") || lower.includes("план")) return "Давай коротко: цель, срок и первый маленький шаг на сегодня.";
+  if (lower.includes("устал") || lower.includes("плохо") || lower.includes("груст")) return "Слышу. Сначала выдох. Напиши, что самое тяжёлое прямо сейчас.";
+  if (lower.includes("англий")) return "Ок. Для английского: 15 минут слов, 10 минут аудио и одна короткая фраза вслух.";
+  if (lower.includes("картин") || lower.includes("фото")) return "Фото и картинки лучше отправлять в Telegram-бота. В Web я подключу это через Ray API.";
+  return "Понял. Давай проще: что ты хочешь получить в итоге?";
+};
+
+const askRay = async (text, target = messages) => {
+  addMessage(text, "user", target);
+  const thinking = addMessage("Думаю...", "ray", target);
+  const apiUrl = window.RAY_API_URL;
+
+  if (apiUrl) {
+    try {
+      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "site-user", text }),
+      });
+      const data = await response.json();
+      const reply = data.reply || "Я рядом. Скажи чуть подробнее?";
+      thinking.textContent = reply;
+      speak(reply);
+      return;
+    } catch (error) {
+      thinking.textContent = "Связь с Ray API сейчас не отвечает. Пока отвечу локально.";
+    }
+  }
+
+  window.setTimeout(() => {
+    const reply = localRayReply(text);
+    thinking.textContent = reply;
+    speak(reply);
+  }, 320);
+};
+
+const startVoiceInput = (targetInput, button) => {
+  if (!SpeechRecognition) {
+    addMessage("Голосовой ввод в этом браузере не поддерживается. На iPhone попробуй диктовку клавиатуры.", "ray");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "ru-RU";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  button.classList.add("active");
+  recognition.onresult = (event) => {
+    targetInput.value = event.results[0][0].transcript;
+    targetInput.focus();
+  };
+  recognition.onerror = () => {
+    addMessage("Не получилось услышать голос. Проверь разрешение микрофона.", "ray");
+  };
+  recognition.onend = () => button.classList.remove("active");
+  recognition.start();
+};
 
 const companionBounds = () => {
   const rect = companion.getBoundingClientRect();
@@ -110,14 +186,13 @@ const showConsent = () => {
   companionConsent.checked = readSetting("companion_allowed") === "yes";
   consentPanel.classList.add("show");
 };
+
 const hideConsent = () => consentPanel.classList.remove("show");
 const showInstall = () => installPanel.classList.add("show");
 const hideInstall = () => installPanel.classList.remove("show");
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
-if (!readSetting("privacy_seen")) {
-  showConsent();
-}
+if (!readSetting("privacy_seen")) showConsent();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -162,8 +237,8 @@ installApp.addEventListener("click", async () => {
 });
 
 closeInstall.addEventListener("click", hideInstall);
-
 openConsent.addEventListener("click", showConsent);
+
 skipConsent.addEventListener("click", () => {
   rememberSetting("privacy_seen", "yes");
   rememberSetting("memory_allowed", "no");
@@ -196,6 +271,15 @@ const setCompanionVisible = (visible) => {
   rememberSetting("companion_visible", visible ? "yes" : "no");
 };
 
+const openQuickChat = () => {
+  if (!companionAllowed()) {
+    showConsent();
+    return;
+  }
+  quickChat.classList.add("show");
+  quickChatInput.focus();
+};
+
 const pointerPosition = (event) => {
   const point = event.touches ? event.touches[0] : event;
   return { x: point.clientX, y: point.clientY };
@@ -212,6 +296,7 @@ companion.addEventListener("pointerdown", (event) => {
   dragState = {
     offsetX: point.x - rect.left,
     offsetY: point.y - rect.top,
+    moved: false,
   };
   companion.classList.add("dragging");
   companion.setPointerCapture(event.pointerId);
@@ -220,22 +305,26 @@ companion.addEventListener("pointerdown", (event) => {
 companion.addEventListener("pointermove", (event) => {
   if (!dragState) return;
   const point = pointerPosition(event);
+  dragState.moved = true;
   placeCompanion(point.x - dragState.offsetX, point.y - dragState.offsetY, false);
 });
 
 const endDrag = (event) => {
   if (!dragState) return;
   const rect = companion.getBoundingClientRect();
+  const moved = dragState.moved;
   dragState = null;
   companion.classList.remove("dragging");
   placeCompanion(rect.left, rect.top, true);
   if (event.pointerId !== undefined && companion.hasPointerCapture(event.pointerId)) {
     companion.releasePointerCapture(event.pointerId);
   }
+  if (!moved) openQuickChat();
 };
 
 companion.addEventListener("pointerup", endDrag);
 companion.addEventListener("pointercancel", endDrag);
+companion.addEventListener("dblclick", openQuickChat);
 
 window.addEventListener("resize", () => {
   const rect = companion.getBoundingClientRect();
@@ -246,6 +335,7 @@ applyCompanionColor(readSetting("companion_color") || "teal");
 setCompanionVisible(companionAllowed() && readSetting("companion_visible") !== "no");
 restoreCompanionPosition();
 startCompanionMovement();
+speakToggle.classList.toggle("active", voiceEnabled);
 
 swatches.forEach((button) => {
   button.addEventListener("click", () => applyCompanionColor(button.dataset.companion));
@@ -259,31 +349,31 @@ toggleCompanion.addEventListener("click", () => {
   setCompanionVisible(companion.classList.contains("hidden"));
 });
 
+voiceInput.addEventListener("click", () => startVoiceInput(input, voiceInput));
+quickVoiceInput.addEventListener("click", () => startVoiceInput(quickChatInput, quickVoiceInput));
+
+speakToggle.addEventListener("click", () => {
+  voiceEnabled = !voiceEnabled;
+  localStorage.setItem("ray_voice_reply", voiceEnabled ? "yes" : "no");
+  speakToggle.classList.toggle("active", voiceEnabled);
+  if (voiceEnabled) speak("Ок, буду отвечать голосом.");
+  else window.speechSynthesis?.cancel();
+});
+
+closeQuickChat.addEventListener("click", () => quickChat.classList.remove("show"));
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const text = input.value.trim();
   if (!text) return;
-
-  addMessage(text, "user");
   input.value = "";
+  await askRay(text, messages);
+});
 
-  const apiUrl = window.RAY_API_URL;
-  if (apiUrl) {
-    try {
-      const response = await fetch(`${apiUrl.replace(/\/$/, "")}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: "site-demo", text }),
-      });
-      const data = await response.json();
-      addMessage(data.reply || "Я рядом. Скажи чуть подробнее?");
-      return;
-    } catch (error) {
-      addMessage("Связь с Рэем сейчас не отвечает. Я сохранил мысль на экране.");
-      return;
-    }
-  }
-
-  const reply = quickReplies[Math.floor(Math.random() * quickReplies.length)];
-  window.setTimeout(() => addMessage(reply), 350);
+quickChatForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const text = quickChatInput.value.trim();
+  if (!text) return;
+  quickChatInput.value = "";
+  await askRay(text, quickChatBody);
 });
