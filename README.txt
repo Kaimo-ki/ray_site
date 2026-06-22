@@ -1,18 +1,26 @@
-Рэй — публичный сайт
+Ray public site
 
-Открыть локально:
-index.html
-
-Публичная ссылка:
+Public URL:
 https://kaimo-ki.github.io/ray_site/
 
-Подключение настоящего API:
-в config.js указать window.RAY_API_URL = "https://your-api.example.com"
+Local entry:
+index.html
 
-Спутник Рея:
-на сайте его можно включать, выключать, менять цвет и перетаскивать.
-После разрешения памяти он иногда сам мягко переезжает по экрану.
+Install options:
+- PWA install through Chrome, Edge, Android Chrome, or iPhone Safari "Add to Home Screen".
+- Windows app shortcut: downloads/Install-Ray-Web.cmd
+- Windows floating companion: downloads/Install-Ray-Companion.cmd
+- Downloadable static site archive: downloads/ray-web.zip
+
+Privacy behavior:
+- Ray does not read the computer, phone, files, screen, or other apps.
+- Ray sees only messages and files the user sends directly.
+- Memory and free companion movement are separate user choices.
+- If the user chooses "chat only", Ray still works in chat and companion movement stays off.
+
+Backend connection:
+Set window.RAY_API_URL in config.js when the 24/7 Ray API is deployed.
 
 Telegram:
-движущийся объект поверх обычного чата Telegram сделать нельзя.
-Можно сделать похожий опыт через Telegram Web App, стикеры, реакции и кнопки.
+The same Telegram bot can open Ray Web through a Web App button.
+Telegram itself does not allow a bot to draw a floating object over the normal chat UI.
