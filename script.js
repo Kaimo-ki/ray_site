@@ -22,11 +22,20 @@ const quickChatForm = document.getElementById("quickChatForm");
 const quickChatInput = document.getElementById("quickChatInput");
 const quickVoiceInput = document.getElementById("quickVoiceInput");
 const closeQuickChat = document.getElementById("closeQuickChat");
+const onboarding = document.getElementById("onboarding");
+const onboardingName = document.getElementById("onboardingName");
+const onboardingMemory = document.getElementById("onboardingMemory");
+const onboardingCompanion = document.getElementById("onboardingCompanion");
+const finishOnboarding = document.getElementById("finishOnboarding");
+const onboardingSteps = [...document.querySelectorAll("[data-step]")];
+const onboardingDots = [...document.querySelectorAll("[data-step-dot]")];
+const nextStepButtons = [...document.querySelectorAll("[data-next-step]")];
 
 let companionMoveTimer = null;
 let dragState = null;
 let installPrompt = null;
 let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
+let onboardingStep = 0;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -39,6 +48,16 @@ const isStandalone = () => (
 );
 
 const isIos = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+const showOnboardingStep = (step) => {
+  onboardingStep = clamp(step, 0, onboardingSteps.length - 1);
+  onboardingSteps.forEach((item, index) => item.classList.toggle("active", index === onboardingStep));
+  onboardingDots.forEach((item, index) => item.classList.toggle("active", index === onboardingStep));
+};
+
+const collectPurposes = () => (
+  [...document.querySelectorAll(".purpose-grid input:checked")].map((item) => item.value)
+);
 
 const addMessage = (text, type = "ray", target = messages) => {
   const node = document.createElement("div");
@@ -79,9 +98,13 @@ const askRay = async (text, target = messages) => {
       const response = await fetch(`${apiUrl.replace(/\/$/, "")}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: "site-user", text }),
+        body: JSON.stringify({
+          session_id: readSetting("session_id") || undefined,
+          message: text,
+        }),
       });
       const data = await response.json();
+      if (data.session_id) rememberSetting("session_id", data.session_id);
       const reply = data.reply || "Я рядом. Скажи чуть подробнее?";
       thinking.textContent = reply;
       speak(reply);
@@ -192,7 +215,12 @@ const showInstall = () => installPanel.classList.add("show");
 const hideInstall = () => installPanel.classList.remove("show");
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
-if (!readSetting("privacy_seen")) showConsent();
+if (readSetting("onboarding_done") === "yes") {
+  onboarding.classList.remove("show");
+  if (!readSetting("privacy_seen")) showConsent();
+} else {
+  showOnboardingStep(0);
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -238,6 +266,23 @@ installApp.addEventListener("click", async () => {
 
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
+nextStepButtons.forEach((button) => {
+  button.addEventListener("click", () => showOnboardingStep(onboardingStep + 1));
+});
+
+finishOnboarding.addEventListener("click", () => {
+  rememberSetting("onboarding_done", "yes");
+  rememberSetting("privacy_seen", "yes");
+  rememberSetting("profile_name", onboardingName.value.trim());
+  rememberSetting("purposes", JSON.stringify(collectPurposes()));
+  rememberSetting("memory_allowed", onboardingMemory.checked ? "yes" : "no");
+  rememberSetting("companion_allowed", onboardingCompanion.checked ? "yes" : "no");
+  onboarding.classList.remove("show");
+  setCompanionVisible(onboardingCompanion.checked);
+  startCompanionMovement();
+  addMessage("Готово. Я здесь, можно писать или говорить.", "ray");
+  speak("Готово. Я здесь.");
+});
 
 skipConsent.addEventListener("click", () => {
   rememberSetting("privacy_seen", "yes");

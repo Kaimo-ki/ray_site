@@ -16,6 +16,67 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
+    <div class="onboarding-card">
+      <div class="onboarding-progress">
+        <span class="active" data-step-dot="0"></span>
+        <span data-step-dot="1"></span>
+        <span data-step-dot="2"></span>
+        <span data-step-dot="3"></span>
+      </div>
+
+      <article class="onboarding-step active" data-step="0">
+        <p class="eyebrow">Добро пожаловать</p>
+        <h1>Привет. Я Рэй.</h1>
+        <p>Я могу быть рядом в Telegram, на сайте и в установленном приложении. Сначала настроим, как тебе удобно со мной работать.</p>
+        <label class="field-label">
+          Email или имя
+          <input id="onboardingName" type="text" autocomplete="name" placeholder="Например: akmola@help.com">
+        </label>
+        <button class="button primary" type="button" data-next-step>Продолжить</button>
+      </article>
+
+      <article class="onboarding-step" data-step="1">
+        <p class="eyebrow">Как пользоваться</p>
+        <h2>Пиши, говори или показывай контекст.</h2>
+        <div class="guide-list">
+          <p><strong>Чат:</strong> напиши вопрос, мысль или цель, Рэй ответит на месте.</p>
+          <p><strong>Голос:</strong> нажми микрофон. На iPhone можно использовать диктовку клавиатуры.</p>
+          <p><strong>Контекст:</strong> Рэй видит только то, что ты сам отправил или выделил с разрешения.</p>
+          <p><strong>Экран:</strong> сайт не читает экран. Для анализа выделенной области нужен desktop companion с отдельным разрешением.</p>
+        </div>
+        <button class="button primary" type="button" data-next-step>Дальше</button>
+      </article>
+
+      <article class="onboarding-step" data-step="2">
+        <p class="eyebrow">Для чего Рэй</p>
+        <h2>Выбери, где он должен помогать чаще.</h2>
+        <div class="purpose-grid">
+          <label><input type="checkbox" value="study"> Учёба и объяснения</label>
+          <label><input type="checkbox" value="goals"> Цели и планы</label>
+          <label><input type="checkbox" value="support"> Поддержка и мысли</label>
+          <label><input type="checkbox" value="work"> Работа и ответы</label>
+        </div>
+        <button class="button primary" type="button" data-next-step>Продолжить</button>
+      </article>
+
+      <article class="onboarding-step" data-step="3">
+        <p class="eyebrow">Подключение</p>
+        <h2>Готово. Рэй будет работать здесь.</h2>
+        <p>Ты можешь включить память и спутника сейчас или позже в настройках приватности. Telegram остаётся дополнительным входом, не обязательным.</p>
+        <label class="check-row">
+          <input type="checkbox" id="onboardingMemory" checked>
+          <span>Разрешить память для целей, стиля общения и важных заметок.</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="onboardingCompanion" checked>
+          <span>Включить спутника Рея внутри сайта/приложения.</span>
+        </label>
+        <button class="button primary" type="button" id="finishOnboarding">Подключить Рэя</button>
+      </article>
+    </div>
+  </section>
+
   <div class="shell">
     <aside class="sidebar">
       <a class="brand" href="#top" aria-label="Рэй">
