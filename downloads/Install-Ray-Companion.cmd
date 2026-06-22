@@ -7,9 +7,10 @@ set "ICON_FILE=%APP_DIR%\ray.ico"
 if not exist "%APP_DIR%" mkdir "%APP_DIR%"
 
 echo.
-echo Telegram bot username is optional.
-echo If Telegram said "name not found", leave it empty for now.
-set /p BOT_USERNAME=Bot username without @, or press Enter to skip: 
+echo Telegram bot username.
+echo Default: rey_helper_bot
+set /p BOT_USERNAME=Bot username without @, or press Enter for default: 
+if "%BOT_USERNAME%"=="" set "BOT_USERNAME=rey_helper_bot"
 set "BOT_URL="
 if not "%BOT_USERNAME%"=="" set "BOT_URL=https://t.me/%BOT_USERNAME%"
 

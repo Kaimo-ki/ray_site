@@ -24,3 +24,4 @@ Set window.RAY_API_URL in config.js when the 24/7 Ray API is deployed.
 Telegram:
 The same Telegram bot can open Ray Web through a Web App button.
 Telegram itself does not allow a bot to draw a floating object over the normal chat UI.
+Current bot username: @rey_helper_bot
