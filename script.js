@@ -146,7 +146,7 @@ const initAuth = async () => {
 const applyAuthSession = async (session) => {
   const user = session?.user;
   if (!user) {
-    setAuthStatus("Не вошли. Можно использовать сайт без аккаунта или войти через Google/email.");
+    setAuthStatus("Если аккаунта ещё нет, придумай пароль и нажми “Зарегистрироваться”. Если аккаунт уже есть, введи свой пароль и нажми “Войти”.");
     return;
   }
 
