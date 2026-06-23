@@ -337,6 +337,7 @@ h1 {
 
 .button.primary { background: var(--accent); border-color: var(--accent); color: #03110d; font-weight: 800; }
 .button.secondary { background: var(--accent-2); border-color: var(--accent-2); color: #151006; font-weight: 800; }
+.button.is-muted { color: var(--muted); border-color: rgba(255,255,255,.1); background: rgba(255,255,255,.02); }
 .button.ghost:hover, .icon-button:hover { background: rgba(255,255,255,.08); }
 
 .chat-panel {

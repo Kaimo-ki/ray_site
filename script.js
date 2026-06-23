@@ -61,6 +61,7 @@ let installPrompt = null;
 let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
 let onboardingStep = 0;
 let supabaseClient = null;
+let googleAuthEnabled = null;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -130,6 +131,33 @@ const showAuth = () => {
 
 const hideAuth = () => authPanel?.classList.remove("show");
 
+const updateGoogleButton = () => {
+  if (!googleLogin) return;
+  if (googleAuthEnabled === false) {
+    googleLogin.textContent = "Google пока не подключён";
+    googleLogin.classList.add("is-muted");
+  } else {
+    googleLogin.textContent = "Войти через Google";
+    googleLogin.classList.remove("is-muted");
+  }
+};
+
+const checkGoogleProvider = async () => {
+  if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return;
+  try {
+    const response = await fetch(`${cleanUrl(window.SUPABASE_URL)}/auth/v1/settings`, {
+      headers: { apikey: window.SUPABASE_ANON_KEY },
+    });
+    if (!response.ok) return;
+    const settings = await response.json();
+    googleAuthEnabled = Boolean(settings.external?.google);
+    updateGoogleButton();
+  } catch {
+    googleAuthEnabled = null;
+    updateGoogleButton();
+  }
+};
+
 const initAuth = async () => {
   if (!supabaseConfigured()) {
     setAuthStatus("Вход через Google/email готов в коде. Осталось подключить Supabase URL и anon key.");
@@ -138,6 +166,7 @@ const initAuth = async () => {
   }
 
   supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  await checkGoogleProvider();
   const { data } = await supabaseClient.auth.getSession();
   await applyAuthSession(data.session);
   if (!data.session) showAuth();
@@ -177,6 +206,10 @@ const requireAuthClient = () => {
 
 const signInGoogle = async () => {
   if (!requireAuthClient()) return;
+  if (googleAuthEnabled === false) {
+    setAuthStatus("Google-вход ещё не включён в Supabase. Включи Authentication -> Providers -> Google, потом кнопка заработает.");
+    return;
+  }
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: window.location.href.split("#")[0] },
@@ -203,10 +236,10 @@ const signInEmail = async () => {
 
 const sendEmailOtp = async () => {
   if (!requireAuthClient()) return;
-  const name = authName?.value.trim() || onboardingName?.value.trim() || "";
+  const name = authName?.value.trim() || onboardingName?.value.trim() || authEmail.value.trim();
   const email = authEmail.value.trim();
-  if (!name || !email) {
-    setAuthStatus("Введи имя и email, чтобы получить код.");
+  if (!email) {
+    setAuthStatus("Введи email, чтобы получить код.");
     return;
   }
   setAuthStatus("Отправляю код на почту...");
