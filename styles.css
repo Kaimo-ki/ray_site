@@ -119,6 +119,31 @@ button, input { font: inherit; }
   color: var(--accent);
 }
 
+.link-box {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.05);
+}
+
+.link-box p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.link-box code {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #03110d;
+  background: var(--accent);
+  font-weight: 800;
+}
+
 .guide-list,
 .purpose-grid {
   display: grid;

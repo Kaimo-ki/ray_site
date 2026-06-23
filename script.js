@@ -12,6 +12,8 @@ const companionConsent = document.getElementById("companionConsent");
 const apiUrlInput = document.getElementById("apiUrlInput");
 const saveApiUrl = document.getElementById("saveApiUrl");
 const apiStatus = document.getElementById("apiStatus");
+const linkTelegram = document.getElementById("linkTelegram");
+const telegramLinkStatus = document.getElementById("telegramLinkStatus");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
 const installApp = document.getElementById("installApp");
@@ -47,6 +49,11 @@ const readSetting = (key) => localStorage.getItem(`ray_${key}`);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const cleanUrl = (value) => value.trim().replace(/\/+$/, "");
 const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL || "");
+const ensureSessionId = () => {
+  const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
+  rememberSetting("session_id", sessionId);
+  return sessionId;
+};
 
 const isStandalone = () => (
   window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
@@ -69,6 +76,30 @@ const setApiStatus = (text, isOk = false) => {
   apiStatus.textContent = text;
   apiStatus.classList.toggle("ok", isOk);
 };
+
+const setTelegramLinkStatus = (html) => {
+  if (!telegramLinkStatus) return;
+  telegramLinkStatus.innerHTML = html;
+};
+
+async function checkTelegramLink() {
+  const apiUrl = getApiUrl();
+  if (!apiUrl || !telegramLinkStatus) return;
+
+  try {
+    const response = await fetch(`${apiUrl}/link/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: ensureSessionId() }),
+    });
+    const data = await response.json();
+    if (data.linked) {
+      setTelegramLinkStatus("Telegram связан. Web и бот используют одну память.");
+    }
+  } catch (error) {
+    setTelegramLinkStatus("Связку проверю после подключения API.");
+  }
+}
 
 const addMessage = (text, type = "ray", target = messages) => {
   const node = document.createElement("div");
@@ -137,8 +168,7 @@ const syncProfile = async () => {
   const apiUrl = getApiUrl();
   if (!apiUrl || readSetting("memory_allowed") !== "yes") return;
 
-  const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
-  rememberSetting("session_id", sessionId);
+  const sessionId = ensureSessionId();
 
   try {
     await fetch(`${apiUrl}/profile`, {
@@ -248,6 +278,7 @@ const showConsent = () => {
     ? "Ray API подключён. Чат будет отвечать через backend."
     : "Ray API ещё не подключён. Чат работает локально, без общей памяти между устройствами."
   , Boolean(getApiUrl()));
+  checkTelegramLink();
   consentPanel.classList.add("show");
 };
 
@@ -368,6 +399,38 @@ saveApiUrl?.addEventListener("click", async () => {
     await syncProfile();
   } catch (error) {
     setApiStatus("Ссылка сохранена, но API сейчас не отвечает. Проверь Render URL и переменные.");
+  }
+});
+
+linkTelegram?.addEventListener("click", async () => {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    setTelegramLinkStatus("Сначала подключи Ray API.");
+    return;
+  }
+
+  linkTelegram.disabled = true;
+  setTelegramLinkStatus("Готовлю код...");
+  try {
+    const response = await fetch(`${apiUrl}/link/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: ensureSessionId() }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    if (data.linked) {
+      setTelegramLinkStatus("Telegram уже связан. Web и бот используют одну память.");
+      return;
+    }
+
+    setTelegramLinkStatus(
+      `Отправь боту в Telegram: <code>/link ${data.code}</code>. Код живёт около 10 минут.`
+    );
+  } catch (error) {
+    setTelegramLinkStatus("Не получилось создать код. Проверь Railway API и попробуй ещё раз.");
+  } finally {
+    linkTelegram.disabled = false;
   }
 });
 
