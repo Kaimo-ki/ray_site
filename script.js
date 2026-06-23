@@ -46,10 +46,13 @@ const closeAuth = document.getElementById("closeAuth");
 const googleLogin = document.getElementById("googleLogin");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
+const sendEmailCode = document.getElementById("sendEmailCode");
+const verifyEmailCode = document.getElementById("verifyEmailCode");
 const authLogout = document.getElementById("authLogout");
 const authLogoutSettings = document.getElementById("authLogoutSettings");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
+const authCode = document.getElementById("authCode");
 const authPassword = document.getElementById("authPassword");
 
 let companionMoveTimer = null;
@@ -115,6 +118,7 @@ const friendlyAuthError = (error) => {
   if (message.includes("signup is disabled")) return "В Supabase выключена регистрация. Включи регистрацию в Authentication.";
   if (message.includes("user already registered")) return "Такой email уже зарегистрирован. Нажми “Войти” или восстановим пароль позже.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google-вход ещё не включён в Supabase. Пока используй email и пароль.";
+  if (message.includes("otp") || message.includes("token")) return "Код неверный или уже истёк. Запроси новый код на почту.";
   if (message.includes("password")) return "Проверь пароль: минимум 6 символов.";
   return error?.message || "Не получилось войти. Попробуй ещё раз.";
 };
@@ -190,6 +194,52 @@ const signInEmail = async () => {
   }
   setAuthStatus("Проверяю аккаунт...");
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  await applyAuthSession(data.session);
+};
+
+const sendEmailOtp = async () => {
+  if (!requireAuthClient()) return;
+  const name = authName?.value.trim() || onboardingName?.value.trim() || "";
+  const email = authEmail.value.trim();
+  if (!name || !email) {
+    setAuthStatus("Введи имя и email, чтобы получить код.");
+    return;
+  }
+  setAuthStatus("Отправляю код на почту...");
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: window.location.href.split("#")[0],
+      data: { name },
+    },
+  });
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  setAuthStatus("Код отправлен на email. Введи код из письма и нажми “Войти по коду”.");
+  setTimeout(() => authCode?.focus(), 80);
+};
+
+const verifyEmailOtp = async () => {
+  if (!requireAuthClient()) return;
+  const email = authEmail.value.trim();
+  const token = authCode?.value.trim().replace(/\s+/g, "");
+  if (!email || !token) {
+    setAuthStatus("Введи email и код из письма.");
+    return;
+  }
+  setAuthStatus("Проверяю код...");
+  const { data, error } = await supabaseClient.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -496,6 +546,8 @@ closeAuth?.addEventListener("click", hideAuth);
 googleLogin?.addEventListener("click", signInGoogle);
 emailLogin?.addEventListener("click", signInEmail);
 emailSignup?.addEventListener("click", signUpEmail);
+sendEmailCode?.addEventListener("click", sendEmailOtp);
+verifyEmailCode?.addEventListener("click", verifyEmailOtp);
 authLogout?.addEventListener("click", signOut);
 authLogoutSettings?.addEventListener("click", signOut);
 nextStepButtons.forEach((button) => {

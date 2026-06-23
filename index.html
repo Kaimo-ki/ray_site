@@ -368,22 +368,33 @@
     <div class="auth-card">
       <p class="eyebrow">Аккаунт Рэя</p>
       <h2 id="authTitle">Вход или регистрация</h2>
-      <p id="authStatusModal">Если аккаунта ещё нет, придумай пароль и нажми “Зарегистрироваться”. Если придёт письмо, нажми ссылку подтверждения. Код на сайте вводить не нужно.</p>
+      <p id="authStatusModal">Введи имя и email, получи код на почту и введи его здесь. Пароль можно использовать, если аккаунт уже создан.</p>
       <button class="button ghost full-button" type="button" id="googleLogin">Войти через Google</button>
       <label class="field-label compact-field">
         Имя
         <input id="authName" type="text" autocomplete="name" placeholder="Как к тебе обращаться">
       </label>
-      <div class="auth-grid">
+      <label class="field-label compact-field">
+        Email
         <input id="authEmail" type="email" autocomplete="email" placeholder="email">
+      </label>
+      <div class="auth-actions">
+        <button class="button primary" type="button" id="sendEmailCode">Получить код</button>
+      </div>
+      <div class="auth-grid">
+        <input id="authCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="код из письма">
+        <button class="button ghost" type="button" id="verifyEmailCode">Войти по коду</button>
+      </div>
+      <p class="phone-note">Код приходит на email. Если в письме есть ещё и ссылка, её можно не нажимать, просто введи код здесь.</p>
+      <div class="auth-grid">
         <input id="authPassword" type="password" autocomplete="current-password" placeholder="пароль: новый или уже существующий">
+        <button class="button ghost" type="button" id="emailLogin">Войти с паролем</button>
       </div>
       <div class="auth-actions">
-        <button class="button primary" type="button" id="emailSignup">Зарегистрироваться</button>
-        <button class="button ghost" type="button" id="emailLogin">Войти</button>
+        <button class="button ghost" type="button" id="emailSignup">Создать пароль</button>
         <button class="button ghost" type="button" id="authLogout">Выйти</button>
       </div>
-      <p class="phone-note">Вход по номеру телефона и SMS подключим отдельно, когда будет выбран SMS-провайдер. Сейчас работает email/пароль и Google.</p>
+      <p class="phone-note">Вход по номеру телефона и SMS подключим отдельно, когда будет выбран SMS-провайдер. Сейчас код приходит на email.</p>
       <button class="button ghost full-button" type="button" id="closeAuth">Готово</button>
     </div>
   </div>
