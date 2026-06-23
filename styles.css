@@ -181,6 +181,17 @@ button, input { font: inherit; }
   outline: none;
 }
 
+.full-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.phone-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .auth-actions {
   display: flex;
   flex-wrap: wrap;
@@ -659,6 +670,7 @@ body.companion-rose { --accent: #ff7ab6; }
 .swatch.blue { background: #6fb7ff; }
 .swatch.rose { background: #ff7ab6; }
 
+.auth-backdrop,
 .consent-backdrop,
 .install-backdrop {
   position: fixed;
@@ -670,9 +682,11 @@ body.companion-rose { --accent: #ff7ab6; }
   z-index: 20;
 }
 
+.auth-backdrop.show,
 .consent-backdrop.show,
 .install-backdrop.show { display: grid; }
 
+.auth-card,
 .consent-card,
 .install-card {
   width: min(520px, 100%);
@@ -681,6 +695,11 @@ body.companion-rose { --accent: #ff7ab6; }
   border-radius: 8px;
   background: #0c1716;
   box-shadow: var(--shadow);
+}
+
+.auth-card {
+  display: grid;
+  gap: 14px;
 }
 
 .install-list {
@@ -728,6 +747,10 @@ body.companion-rose { --accent: #ff7ab6; }
   .composer { grid-template-columns: 1fr; }
   .composer button { width: 100%; }
   .composer .tool-button { width: 100%; }
+  .auth-grid { grid-template-columns: 1fr; }
+  .auth-card,
+  .consent-card,
+  .install-card { padding: 20px; }
   .quick-chat { left: 16px; right: 16px; bottom: 112px; width: auto; }
   .companion-controls { left: 16px; right: 16px; bottom: 16px; justify-content: space-between; }
   .companion { left: calc(100vw - 80px); top: calc(100vh - 178px); }

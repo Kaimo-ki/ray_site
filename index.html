@@ -35,17 +35,8 @@
         </label>
         <div class="auth-box">
           <strong>Аккаунт Рэя</strong>
-          <p id="authStatus">Можно войти через Google или email, когда подключим Supabase.</p>
-          <button class="button ghost" type="button" id="googleLogin">Войти через Google</button>
-          <div class="auth-grid">
-            <input id="authEmail" type="email" autocomplete="email" placeholder="email">
-            <input id="authPassword" type="password" autocomplete="current-password" placeholder="пароль">
-          </div>
-          <div class="auth-actions">
-            <button class="button ghost" type="button" id="emailLogin">Войти</button>
-            <button class="button ghost" type="button" id="emailSignup">Создать аккаунт</button>
-            <button class="button ghost" type="button" id="authLogout">Выйти</button>
-          </div>
+          <p id="authStatus">Войди или создай аккаунт: имя, email и пароль.</p>
+          <button class="button ghost" type="button" id="openAuthOnboarding">Вход / регистрация</button>
         </div>
         <button class="button primary" type="button" data-next-step>Продолжить</button>
       </article>
@@ -126,6 +117,7 @@
           <div class="hero-actions">
             <a class="button primary" href="https://t.me/rey_helper_bot">Открыть Telegram</a>
             <button class="button secondary" type="button" id="installApp">Установить</button>
+            <button class="button secondary" type="button" id="openAuth">Вход / регистрация</button>
             <a class="button secondary" href="/ray_site/downloads/Install-Ray-Companion.cmd" download>Установить кнопку Рея</a>
             <a class="button secondary" href="/ray_site/downloads/Install-Ray-Web.cmd" download>Установить на Windows</a>
             <button class="button ghost" type="button" id="openConsent">Настройки приватности</button>
@@ -342,7 +334,7 @@
         <strong>Аккаунт</strong>
         <p id="authStatusSettings">Вход ещё не подключён.</p>
         <div class="auth-actions">
-          <button class="button ghost" type="button" id="googleLoginSettings">Google</button>
+          <button class="button ghost" type="button" id="openAuthSettings">Вход / регистрация</button>
           <button class="button ghost" type="button" id="authLogoutSettings">Выйти</button>
         </div>
       </div>
@@ -369,6 +361,30 @@
         <button class="button primary" type="button" id="acceptConsent">Сохранить выбор</button>
         <button class="button ghost" type="button" id="skipConsent">Только чат</button>
       </div>
+    </div>
+  </div>
+
+  <div class="auth-backdrop" id="authPanel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="auth-card">
+      <p class="eyebrow">Аккаунт Рэя</p>
+      <h2 id="authTitle">Вход или регистрация</h2>
+      <p id="authStatusModal">Введи имя, email и пароль, чтобы память Рэя была одной на сайте и в Telegram.</p>
+      <button class="button ghost full-button" type="button" id="googleLogin">Войти через Google</button>
+      <label class="field-label compact-field">
+        Имя
+        <input id="authName" type="text" autocomplete="name" placeholder="Как к тебе обращаться">
+      </label>
+      <div class="auth-grid">
+        <input id="authEmail" type="email" autocomplete="email" placeholder="email">
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="пароль">
+      </div>
+      <div class="auth-actions">
+        <button class="button primary" type="button" id="emailSignup">Зарегистрироваться</button>
+        <button class="button ghost" type="button" id="emailLogin">Войти</button>
+        <button class="button ghost" type="button" id="authLogout">Выйти</button>
+      </div>
+      <p class="phone-note">Вход по номеру телефона и SMS подключим отдельно, когда будет выбран SMS-провайдер. Сейчас работает email/пароль и Google.</p>
+      <button class="button ghost full-button" type="button" id="closeAuth">Готово</button>
     </div>
   </div>
 

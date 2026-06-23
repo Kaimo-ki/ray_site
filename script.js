@@ -37,12 +37,18 @@ const onboardingDots = [...document.querySelectorAll("[data-step-dot]")];
 const nextStepButtons = [...document.querySelectorAll("[data-next-step]")];
 const authStatus = document.getElementById("authStatus");
 const authStatusSettings = document.getElementById("authStatusSettings");
+const authStatusModal = document.getElementById("authStatusModal");
+const authPanel = document.getElementById("authPanel");
+const openAuth = document.getElementById("openAuth");
+const openAuthOnboarding = document.getElementById("openAuthOnboarding");
+const openAuthSettings = document.getElementById("openAuthSettings");
+const closeAuth = document.getElementById("closeAuth");
 const googleLogin = document.getElementById("googleLogin");
-const googleLoginSettings = document.getElementById("googleLoginSettings");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
 const authLogout = document.getElementById("authLogout");
 const authLogoutSettings = document.getElementById("authLogoutSettings");
+const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
 
@@ -97,7 +103,15 @@ const setTelegramLinkStatus = (html) => {
 const setAuthStatus = (text) => {
   if (authStatus) authStatus.textContent = text;
   if (authStatusSettings) authStatusSettings.textContent = text;
+  if (authStatusModal) authStatusModal.textContent = text;
 };
+
+const showAuth = () => {
+  authPanel?.classList.add("show");
+  setTimeout(() => authEmail?.focus(), 80);
+};
+
+const hideAuth = () => authPanel?.classList.remove("show");
 
 const initAuth = async () => {
   if (!supabaseConfigured()) {
@@ -122,9 +136,12 @@ const applyAuthSession = async (session) => {
   }
 
   const email = user.email || "аккаунт";
+  const name = user.user_metadata?.name || user.user_metadata?.full_name || email;
   rememberSetting("account_email", email);
   rememberSetting("session_id", `auth-${user.id}`);
-  if (onboardingName && !onboardingName.value.trim()) onboardingName.value = email;
+  if (onboardingName && !onboardingName.value.trim()) onboardingName.value = name;
+  if (authName && !authName.value.trim()) authName.value = name;
+  if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   setAuthStatus(`Вход выполнен: ${email}`);
   await syncProfile();
   await checkTelegramLink();
@@ -160,16 +177,20 @@ const signInEmail = async () => {
 
 const signUpEmail = async () => {
   if (!requireAuthClient()) return;
+  const name = authName?.value.trim() || onboardingName?.value.trim() || "";
   const email = authEmail.value.trim();
   const password = authPassword.value;
-  if (!email || password.length < 6) {
-    setAuthStatus("Для регистрации нужен email и пароль от 6 символов.");
+  if (!name || !email || password.length < 6) {
+    setAuthStatus("Для регистрации нужны имя, email и пароль от 6 символов.");
     return;
   }
   const { error } = await supabaseClient.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: window.location.href.split("#")[0] },
+    options: {
+      emailRedirectTo: window.location.href.split("#")[0],
+      data: { name },
+    },
   });
   setAuthStatus(error ? error.message : "Аккаунт создан. Проверь почту, если Supabase попросит подтверждение.");
 };
@@ -437,8 +458,11 @@ installApp.addEventListener("click", async () => {
 
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
+openAuth?.addEventListener("click", showAuth);
+openAuthOnboarding?.addEventListener("click", showAuth);
+openAuthSettings?.addEventListener("click", showAuth);
+closeAuth?.addEventListener("click", hideAuth);
 googleLogin?.addEventListener("click", signInGoogle);
-googleLoginSettings?.addEventListener("click", signInGoogle);
 emailLogin?.addEventListener("click", signInEmail);
 emailSignup?.addEventListener("click", signUpEmail);
 authLogout?.addEventListener("click", signOut);
