@@ -33,6 +33,20 @@
           Email или имя
           <input id="onboardingName" type="text" autocomplete="name" placeholder="Например: akmola@help.com">
         </label>
+        <div class="auth-box">
+          <strong>Аккаунт Рэя</strong>
+          <p id="authStatus">Можно войти через Google или email, когда подключим Supabase.</p>
+          <button class="button ghost" type="button" id="googleLogin">Войти через Google</button>
+          <div class="auth-grid">
+            <input id="authEmail" type="email" autocomplete="email" placeholder="email">
+            <input id="authPassword" type="password" autocomplete="current-password" placeholder="пароль">
+          </div>
+          <div class="auth-actions">
+            <button class="button ghost" type="button" id="emailLogin">Войти</button>
+            <button class="button ghost" type="button" id="emailSignup">Создать аккаунт</button>
+            <button class="button ghost" type="button" id="authLogout">Выйти</button>
+          </div>
+        </div>
         <button class="button primary" type="button" data-next-step>Продолжить</button>
       </article>
 
@@ -324,6 +338,14 @@
       <h2 id="consentTitle">Ты сам решаешь, что Рэю можно.</h2>
       <p>Рэй не читает ноутбук, телефон, файлы, экран или другие приложения. Он видит только сообщения и материалы, которые ты сам отправляешь в чат.</p>
       <p>Если не дать разрешения, Рэй всё равно работает как помощник в чате. Свободный спутник и память можно включить позже в настройках приватности.</p>
+      <div class="auth-box compact-auth">
+        <strong>Аккаунт</strong>
+        <p id="authStatusSettings">Вход ещё не подключён.</p>
+        <div class="auth-actions">
+          <button class="button ghost" type="button" id="googleLoginSettings">Google</button>
+          <button class="button ghost" type="button" id="authLogoutSettings">Выйти</button>
+        </div>
+      </div>
       <label class="field-label compact-field">
         Ray API URL
         <input id="apiUrlInput" type="url" inputmode="url" placeholder="https://your-ray-api.onrender.com">
@@ -351,6 +373,7 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
 </body>
 </html>

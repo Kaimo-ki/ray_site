@@ -35,12 +35,23 @@ const finishOnboarding = document.getElementById("finishOnboarding");
 const onboardingSteps = [...document.querySelectorAll("[data-step]")];
 const onboardingDots = [...document.querySelectorAll("[data-step-dot]")];
 const nextStepButtons = [...document.querySelectorAll("[data-next-step]")];
+const authStatus = document.getElementById("authStatus");
+const authStatusSettings = document.getElementById("authStatusSettings");
+const googleLogin = document.getElementById("googleLogin");
+const googleLoginSettings = document.getElementById("googleLoginSettings");
+const emailLogin = document.getElementById("emailLogin");
+const emailSignup = document.getElementById("emailSignup");
+const authLogout = document.getElementById("authLogout");
+const authLogoutSettings = document.getElementById("authLogoutSettings");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
 
 let companionMoveTimer = null;
 let dragState = null;
 let installPrompt = null;
 let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
 let onboardingStep = 0;
+let supabaseClient = null;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -49,6 +60,7 @@ const readSetting = (key) => localStorage.getItem(`ray_${key}`);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const cleanUrl = (value) => value.trim().replace(/\/+$/, "");
 const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL || "");
+const supabaseConfigured = () => Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
 const ensureSessionId = () => {
   const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
   rememberSetting("session_id", sessionId);
@@ -80,6 +92,93 @@ const setApiStatus = (text, isOk = false) => {
 const setTelegramLinkStatus = (html) => {
   if (!telegramLinkStatus) return;
   telegramLinkStatus.innerHTML = html;
+};
+
+const setAuthStatus = (text) => {
+  if (authStatus) authStatus.textContent = text;
+  if (authStatusSettings) authStatusSettings.textContent = text;
+};
+
+const initAuth = async () => {
+  if (!supabaseConfigured()) {
+    setAuthStatus("Вход через Google/email готов в коде. Осталось подключить Supabase URL и anon key.");
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  const { data } = await supabaseClient.auth.getSession();
+  await applyAuthSession(data.session);
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    applyAuthSession(session);
+  });
+};
+
+const applyAuthSession = async (session) => {
+  const user = session?.user;
+  if (!user) {
+    setAuthStatus("Не вошли. Можно использовать сайт без аккаунта или войти через Google/email.");
+    return;
+  }
+
+  const email = user.email || "аккаунт";
+  rememberSetting("account_email", email);
+  rememberSetting("session_id", `auth-${user.id}`);
+  if (onboardingName && !onboardingName.value.trim()) onboardingName.value = email;
+  setAuthStatus(`Вход выполнен: ${email}`);
+  await syncProfile();
+  await checkTelegramLink();
+};
+
+const requireAuthClient = () => {
+  if (!supabaseClient) {
+    setAuthStatus("Supabase ещё не подключён. Нужно добавить SUPABASE_URL и SUPABASE_ANON_KEY в config.js.");
+    return false;
+  }
+  return true;
+};
+
+const signInGoogle = async () => {
+  if (!requireAuthClient()) return;
+  await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.href.split("#")[0] },
+  });
+};
+
+const signInEmail = async () => {
+  if (!requireAuthClient()) return;
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || !password) {
+    setAuthStatus("Введи email и пароль.");
+    return;
+  }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  setAuthStatus(error ? error.message : "Вход выполнен.");
+};
+
+const signUpEmail = async () => {
+  if (!requireAuthClient()) return;
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || password.length < 6) {
+    setAuthStatus("Для регистрации нужен email и пароль от 6 символов.");
+    return;
+  }
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: window.location.href.split("#")[0] },
+  });
+  setAuthStatus(error ? error.message : "Аккаунт создан. Проверь почту, если Supabase попросит подтверждение.");
+};
+
+const signOut = async () => {
+  if (!requireAuthClient()) return;
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem("ray_account_email");
+  setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
 };
 
 async function checkTelegramLink() {
@@ -338,6 +437,12 @@ installApp.addEventListener("click", async () => {
 
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
+googleLogin?.addEventListener("click", signInGoogle);
+googleLoginSettings?.addEventListener("click", signInGoogle);
+emailLogin?.addEventListener("click", signInEmail);
+emailSignup?.addEventListener("click", signUpEmail);
+authLogout?.addEventListener("click", signOut);
+authLogoutSettings?.addEventListener("click", signOut);
 nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => showOnboardingStep(onboardingStep + 1));
 });
@@ -553,3 +658,5 @@ quickChatForm.addEventListener("submit", async (event) => {
   quickChatInput.value = "";
   await askRay(text, quickChatBody);
 });
+
+initAuth();
