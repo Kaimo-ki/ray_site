@@ -223,7 +223,7 @@ const signUpEmail = async () => {
     await applyAuthSession(data.session);
     return;
   }
-  setAuthStatus("Аккаунт создан. Проверь почту и подтверди email, потом нажми “Войти”.");
+  setAuthStatus("Аккаунт создан. Открой письмо и нажми ссылку подтверждения. Код на сайте вводить не нужно. Потом вернись сюда и нажми “Войти”.");
 };
 
 const signOut = async () => {
