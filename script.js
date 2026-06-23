@@ -116,12 +116,14 @@ const hideAuth = () => authPanel?.classList.remove("show");
 const initAuth = async () => {
   if (!supabaseConfigured()) {
     setAuthStatus("Вход через Google/email готов в коде. Осталось подключить Supabase URL и anon key.");
+    showAuth();
     return;
   }
 
   supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   const { data } = await supabaseClient.auth.getSession();
   await applyAuthSession(data.session);
+  if (!data.session) showAuth();
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     applyAuthSession(session);
@@ -143,6 +145,7 @@ const applyAuthSession = async (session) => {
   if (authName && !authName.value.trim()) authName.value = name;
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   setAuthStatus(`Вход выполнен: ${email}`);
+  hideAuth();
   await syncProfile();
   await checkTelegramLink();
 };

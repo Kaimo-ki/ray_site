@@ -682,6 +682,8 @@ body.companion-rose { --accent: #ff7ab6; }
   z-index: 20;
 }
 
+.auth-backdrop { z-index: 60; }
+
 .auth-backdrop.show,
 .consent-backdrop.show,
 .install-backdrop.show { display: grid; }
