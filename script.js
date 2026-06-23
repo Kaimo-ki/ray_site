@@ -106,6 +106,19 @@ const setAuthStatus = (text) => {
   if (authStatusModal) authStatusModal.textContent = text;
 };
 
+const friendlyAuthError = (error) => {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (!message) return "Не получилось войти. Попробуй ещё раз.";
+  if (message.includes("invalid login credentials")) return "Неверный email или пароль. Если аккаунта ещё нет, нажми “Зарегистрироваться”.";
+  if (message.includes("email not confirmed")) return "Email ещё не подтверждён. Открой письмо от Supabase и подтверди вход.";
+  if (message.includes("email provider is disabled")) return "В Supabase выключен вход по email. Включи Authentication -> Providers -> Email.";
+  if (message.includes("signup is disabled")) return "В Supabase выключена регистрация. Включи регистрацию в Authentication.";
+  if (message.includes("user already registered")) return "Такой email уже зарегистрирован. Нажми “Войти” или восстановим пароль позже.";
+  if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google-вход ещё не включён в Supabase. Пока используй email и пароль.";
+  if (message.includes("password")) return "Проверь пароль: минимум 6 символов.";
+  return error?.message || "Не получилось войти. Попробуй ещё раз.";
+};
+
 const showAuth = () => {
   authPanel?.classList.add("show");
   setTimeout(() => authEmail?.focus(), 80);
@@ -160,10 +173,11 @@ const requireAuthClient = () => {
 
 const signInGoogle = async () => {
   if (!requireAuthClient()) return;
-  await supabaseClient.auth.signInWithOAuth({
+  const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: window.location.href.split("#")[0] },
   });
+  if (error) setAuthStatus(friendlyAuthError(error));
 };
 
 const signInEmail = async () => {
@@ -174,8 +188,13 @@ const signInEmail = async () => {
     setAuthStatus("Введи email и пароль.");
     return;
   }
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  setAuthStatus(error ? error.message : "Вход выполнен.");
+  setAuthStatus("Проверяю аккаунт...");
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  await applyAuthSession(data.session);
 };
 
 const signUpEmail = async () => {
@@ -187,7 +206,8 @@ const signUpEmail = async () => {
     setAuthStatus("Для регистрации нужны имя, email и пароль от 6 символов.");
     return;
   }
-  const { error } = await supabaseClient.auth.signUp({
+  setAuthStatus("Создаю аккаунт...");
+  const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
@@ -195,7 +215,15 @@ const signUpEmail = async () => {
       data: { name },
     },
   });
-  setAuthStatus(error ? error.message : "Аккаунт создан. Проверь почту, если Supabase попросит подтверждение.");
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  if (data.session) {
+    await applyAuthSession(data.session);
+    return;
+  }
+  setAuthStatus("Аккаунт создан. Проверь почту и подтверди email, потом нажми “Войти”.");
 };
 
 const signOut = async () => {
