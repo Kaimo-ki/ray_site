@@ -14,6 +14,8 @@ const saveApiUrl = document.getElementById("saveApiUrl");
 const apiStatus = document.getElementById("apiStatus");
 const linkTelegram = document.getElementById("linkTelegram");
 const telegramLinkStatus = document.getElementById("telegramLinkStatus");
+const authLinkTelegram = document.getElementById("authLinkTelegram");
+const authTelegramLinkStatus = document.getElementById("authTelegramLinkStatus");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
 const installApp = document.getElementById("installApp");
@@ -60,6 +62,7 @@ let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
 let onboardingStep = 0;
 let supabaseClient = null;
 let googleAuthEnabled = null;
+let authSession = null;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -98,8 +101,8 @@ const setApiStatus = (text, isOk = false) => {
 };
 
 const setTelegramLinkStatus = (html) => {
-  if (!telegramLinkStatus) return;
-  telegramLinkStatus.innerHTML = html;
+  if (telegramLinkStatus) telegramLinkStatus.innerHTML = html;
+  if (authTelegramLinkStatus) authTelegramLinkStatus.innerHTML = html;
 };
 
 const setAuthStatus = (text) => {
@@ -174,6 +177,7 @@ const initAuth = async () => {
 };
 
 const applyAuthSession = async (session) => {
+  authSession = session || null;
   const user = session?.user;
   if (!user) {
     setAuthStatus("Войди через Google. Email и пароль ниже — запасной способ.");
@@ -233,11 +237,31 @@ const signInEmail = async () => {
 
 const signUpEmail = async () => {
   if (!requireAuthClient()) return;
+  const currentUser = authSession?.user;
   const name = authName?.value.trim() || onboardingName?.value.trim() || "";
   const email = authEmail.value.trim();
   const password = authPassword.value;
-  if (!name || !email || password.length < 6) {
-    setAuthStatus("Для регистрации нужны имя, email и пароль от 6 символов.");
+  if (password.length < 6) {
+    setAuthStatus("Для пароля нужно минимум 6 символов.");
+    return;
+  }
+
+  if (currentUser) {
+    setAuthStatus("Сохраняю пароль для текущего аккаунта...");
+    const { error } = await supabaseClient.auth.updateUser({
+      password,
+      data: { name: name || currentUser.user_metadata?.name || currentUser.email },
+    });
+    if (error) {
+      setAuthStatus(friendlyAuthError(error));
+      return;
+    }
+    setAuthStatus("Пароль сохранён. Теперь можно входить и через Google, и через email + пароль.");
+    return;
+  }
+
+  if (!email) {
+    setAuthStatus("Для создания аккаунта нужен email и пароль от 6 символов.");
     return;
   }
   setAuthStatus("Создаю аккаунт...");
@@ -614,14 +638,14 @@ saveApiUrl?.addEventListener("click", async () => {
   }
 });
 
-linkTelegram?.addEventListener("click", async () => {
+const startTelegramLink = async (button) => {
   const apiUrl = getApiUrl();
   if (!apiUrl) {
     setTelegramLinkStatus("Сначала подключи Ray API.");
     return;
   }
 
-  linkTelegram.disabled = true;
+  if (button) button.disabled = true;
   setTelegramLinkStatus("Готовлю код...");
   try {
     const response = await fetch(`${apiUrl}/link/start`, {
@@ -642,9 +666,12 @@ linkTelegram?.addEventListener("click", async () => {
   } catch (error) {
     setTelegramLinkStatus("Не получилось создать код. Проверь Railway API и попробуй ещё раз.");
   } finally {
-    linkTelegram.disabled = false;
+    if (button) button.disabled = false;
   }
-});
+};
+
+linkTelegram?.addEventListener("click", () => startTelegramLink(linkTelegram));
+authLinkTelegram?.addEventListener("click", () => startTelegramLink(authLinkTelegram));
 
 const applyCompanionColor = (color) => {
   document.body.classList.remove("companion-amber", "companion-blue", "companion-rose");

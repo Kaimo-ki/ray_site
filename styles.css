@@ -693,6 +693,9 @@ body.companion-rose { --accent: #ff7ab6; }
 .consent-card,
 .install-card {
   width: min(520px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 26px;
   border: 1px solid var(--line);
   border-radius: 8px;
