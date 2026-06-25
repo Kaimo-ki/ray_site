@@ -48,6 +48,7 @@ const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
 const authLogout = document.getElementById("authLogout");
 const authLogoutSettings = document.getElementById("authLogoutSettings");
+const resetLocalAuth = document.getElementById("resetLocalAuth");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
@@ -175,7 +176,7 @@ const initAuth = async () => {
 const applyAuthSession = async (session) => {
   const user = session?.user;
   if (!user) {
-    setAuthStatus("Если аккаунта ещё нет, придумай пароль и нажми “Зарегистрироваться”. Если аккаунт уже есть, введи свой пароль и нажми “Войти”.");
+    setAuthStatus("Войди через Google. Email и пароль ниже — запасной способ.");
     return;
   }
 
@@ -264,6 +265,23 @@ const signOut = async () => {
   await supabaseClient.auth.signOut();
   localStorage.removeItem("ray_account_email");
   setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
+  showAuth();
+};
+
+const resetAuthForTesting = async () => {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  [
+    "ray_account_email",
+    "ray_onboarding_done",
+    "ray_privacy_seen",
+    "ray_session_id",
+    "ray_profile_name",
+    "ray_purposes",
+  ].forEach((key) => localStorage.removeItem(key));
+  onboarding?.classList.add("show");
+  showOnboardingStep(0);
+  showAuth();
+  setAuthStatus("Тестовый сброс готов. Теперь можно проверить вход как новый пользователь.");
 };
 
 async function checkTelegramLink() {
@@ -531,6 +549,7 @@ emailLogin?.addEventListener("click", signInEmail);
 emailSignup?.addEventListener("click", signUpEmail);
 authLogout?.addEventListener("click", signOut);
 authLogoutSettings?.addEventListener("click", signOut);
+resetLocalAuth?.addEventListener("click", resetAuthForTesting);
 nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => showOnboardingStep(onboardingStep + 1));
 });
