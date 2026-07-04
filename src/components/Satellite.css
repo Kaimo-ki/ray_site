@@ -1,0 +1,89 @@
+/* src/components/Satellite.css */
+.ray-satellite {
+  position: fixed;
+  z-index: 9998;
+  cursor: default;
+  animation: satelliteFloat 4s ease-in-out infinite;
+  --satellite-color: #4f46e5;
+}
+
+.satellite-content {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--satellite-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.satellite-icon {
+  font-size: 24px;
+  z-index: 1;
+}
+
+.satellite-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: satellitePulse 2s ease-in-out infinite;
+}
+
+@keyframes satellitePulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.3); opacity: 0; }
+}
+
+.satellite-message {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.ray-satellite:hover .satellite-message {
+  opacity: 1;
+}
+
+.satellite-message .message-time {
+  font-size: 9px;
+  opacity: 0.5;
+  margin-left: 6px;
+}
+
+@keyframes satelliteFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(2deg); }
+}
+
+@media (max-width: 480px) {
+  .satellite-content {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .satellite-icon {
+    font-size: 20px;
+  }
+  
+  .satellite-message {
+    font-size: 10px;
+    padding: 4px 10px;
+    top: -34px;
+  }
+}
