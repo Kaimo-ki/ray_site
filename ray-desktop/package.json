@@ -1,0 +1,55 @@
+{
+  "name": "ray-desktop",
+  "version": "1.0.0",
+  "description": "Рэй — персональный AI-помощник для общения, целей, учебы, памяти и фокуса.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "dist": "electron-builder"
+  },
+  "author": "Kaimo-ki",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "build": {
+    "appId": "com.kaimoki.ray",
+    "productName": "Рэй",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "ray_site/**/*",
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "icons/**/*"
+    ],
+    "mac": {
+      "icon": "icons/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "icon": "icons/icon.ico",
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "icon": "icons/icon.png",
+      "target": ["AppImage", "deb"]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
