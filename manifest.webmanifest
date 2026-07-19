@@ -2,14 +2,14 @@
   "id": "/ray_site/",
   "name": "Рэй",
   "short_name": "Рэй",
-  "description": "Персональный AI-помощник с одной памятью для сайта и Telegram.",
+  "description": "Персональный AI-помощник с одной памятью для сайта, Telegram и будущих приложений.",
   "start_url": "/ray_site/",
   "scope": "/ray_site/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
-  "background_color": "#f6f8fb",
-  "theme_color": "#f6f8fb",
+  "background_color": "#f7f8f5",
+  "theme_color": "#f7f8f5",
   "categories": ["productivity", "education", "lifestyle"],
   "launch_handler": {
     "client_mode": "navigate-existing"

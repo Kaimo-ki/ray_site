@@ -191,8 +191,8 @@ $form.Add_Paint({
             (New-Object System.Drawing.Point(2, 41))
         )
     )
-    $glow.CenterColor = [System.Drawing.Color]::FromArgb(170, 50, 214, 176)
-    $glow.SurroundColors = [System.Drawing.Color[]]@([System.Drawing.Color]::FromArgb(0, 50, 214, 176))
+    $glow.CenterColor = [System.Drawing.Color]::FromArgb(190, 159, 186, 115)
+    $glow.SurroundColors = [System.Drawing.Color[]]@([System.Drawing.Color]::FromArgb(0, 159, 186, 115))
     $g.FillEllipse($glow, $outer)
     $glow.Dispose()
 
@@ -202,8 +202,8 @@ $form.Add_Paint({
 
     $core = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
         $inner,
-        [System.Drawing.Color]::FromArgb(50, 214, 176),
-        [System.Drawing.Color]::FromArgb(111, 183, 255),
+        [System.Drawing.Color]::FromArgb(159, 186, 115),
+        [System.Drawing.Color]::FromArgb(199, 216, 163),
         45
     )
     $g.FillEllipse($core, $inner)
