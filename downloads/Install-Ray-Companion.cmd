@@ -11,7 +11,7 @@ set "BOT_URL=https://t.me/%BOT_USERNAME%"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://kaimo-ki.github.io/ray_site/downloads/Ray-Companion.ps1' -OutFile '%SCRIPT_FILE%' -UseBasicParsing"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Invoke-WebRequest -Uri 'https://kaimo-ki.github.io/ray_site/downloads/ray.ico' -OutFile '%ICON_FILE%' -UseBasicParsing } catch { }"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$config = @{ botUrl = '%BOT_URL%'; siteUrl = 'https://kaimo-ki.github.io/ray_site/'; apiUrl = ''; sessionId = 'windows-companion' } | ConvertTo-Json; Set-Content -LiteralPath '%APP_DIR%\companion.json' -Value $config -Encoding UTF8"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$config = @{ botUrl = '%BOT_URL%'; siteUrl = 'https://kaimo-ki.github.io/ray_site/'; apiUrl = 'https://ray-api-production.up.railway.app'; sessionId = 'windows-companion' } | ConvertTo-Json; Set-Content -LiteralPath '%APP_DIR%\companion.json' -Value $config -Encoding UTF8"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$desktop = [Environment]::GetFolderPath('Desktop');" ^

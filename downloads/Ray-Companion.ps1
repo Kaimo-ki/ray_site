@@ -7,7 +7,7 @@ $appDir = Join-Path $env:LOCALAPPDATA "RayWeb"
 $iconPath = Join-Path $appDir "ray.ico"
 $configPath = Join-Path $appDir "companion.json"
 $botUrl = ""
-$apiUrl = ""
+$apiUrl = "https://ray-api-production.up.railway.app"
 $sessionId = "windows-companion"
 
 if (Test-Path $configPath) {
@@ -34,7 +34,7 @@ function Save-RayConfig {
 
 function Ask-RayApi([string]$text) {
     if (-not $apiUrl -or $apiUrl.Trim().Length -eq 0) {
-        return "Ray API пока не подключён. После Render вставь ссылку API в настройки сайта или в %LOCALAPPDATA%\RayWeb\companion.json."
+        return "Ray API пока не подключён. Вставь Railway API в %LOCALAPPDATA%\RayWeb\companion.json."
     }
 
     try {
@@ -50,7 +50,7 @@ function Ask-RayApi([string]$text) {
         if ($response.reply) { return [string]$response.reply }
         return "Я рядом. Скажи чуть подробнее?"
     } catch {
-        return "Не получилось достучаться до Ray API. Проверь Render-ссылку и переменные окружения."
+        return "Не получилось достучаться до Ray API. Проверь Railway-ссылку и переменные окружения."
     }
 }
 
@@ -87,7 +87,7 @@ function Show-ChatWindow {
     $chat.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 
     $label = New-Object System.Windows.Forms.Label
-    $label.Text = "Write to Ray. If Ray API is connected, I will answer here."
+    $label.Text = "Напиши Рэю. Если Ray API доступен, он ответит прямо здесь."
     $label.AutoSize = $false
     $label.Location = New-Object System.Drawing.Point(16, 14)
     $label.Size = New-Object System.Drawing.Size(410, 38)
@@ -107,13 +107,13 @@ function Show-ChatWindow {
     $answer.ForeColor = [System.Drawing.Color]::White
     $answer.BorderStyle = "FixedSingle"
     if ($apiUrl) {
-        $answer.Text = "Ray API connected. Ask me here."
+        $answer.Text = "Ray API подключён. Можно писать сюда."
     } else {
-        $answer.Text = "Ray API is not connected yet. I can open Ray Web or Telegram, but in-place AI needs the Render API URL."
+        $answer.Text = "Ray API не подключён. Я могу открыть Ray Web или Telegram, но ответы здесь требуют Railway API."
     }
 
     $send = New-Object System.Windows.Forms.Button
-    $send.Text = "Ask"
+    $send.Text = "Спросить"
     $send.Location = New-Object System.Drawing.Point(16, 292)
     $send.Size = New-Object System.Drawing.Size(92, 34)
     $send.Add_Click({
@@ -126,11 +126,11 @@ function Show-ChatWindow {
     })
 
     $voice = New-Object System.Windows.Forms.Button
-    $voice.Text = "Voice"
+    $voice.Text = "Голос"
     $voice.Location = New-Object System.Drawing.Point(118, 292)
     $voice.Size = New-Object System.Drawing.Size(92, 34)
     $voice.Add_Click({
-        $answer.Text = "Voice in the Windows companion needs the next native STT step. For now use Telegram voice or the Web microphone."
+        $answer.Text = "Голос в Windows companion требует отдельный native STT-шаг. Пока используй голос в Telegram или микрофон на сайте."
     })
 
     $web = New-Object System.Windows.Forms.Button
@@ -150,7 +150,7 @@ function Show-ChatWindow {
     })
 
     $hint = New-Object System.Windows.Forms.Label
-    $hint.Text = "Tip: set apiUrl in companion.json after Render deploy for real in-place answers."
+    $hint.Text = "Если ответы не идут, проверь apiUrl в %LOCALAPPDATA%\RayWeb\companion.json."
     $hint.AutoSize = $false
     $hint.Location = New-Object System.Drawing.Point(16, 340)
     $hint.Size = New-Object System.Drawing.Size(410, 36)
@@ -225,16 +225,16 @@ $form.Add_Paint({
 })
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
-$openChat = $menu.Items.Add("Write to Ray")
+$openChat = $menu.Items.Add("Написать Рэю")
 $openChat.Add_Click({ Show-ChatWindow })
-$openVoice = $menu.Items.Add("Voice note")
+$openVoice = $menu.Items.Add("Голос")
 $openVoice.Add_Click({ Show-ChatWindow })
-$openWeb = $menu.Items.Add("Open Ray Web")
+$openWeb = $menu.Items.Add("Открыть Ray Web")
 $openWeb.Add_Click({ Open-RayWeb })
-$openBot = $menu.Items.Add("Open Telegram")
+$openBot = $menu.Items.Add("Открыть Telegram")
 $openBot.Add_Click({ Open-RayBot })
 $menu.Items.Add("-") | Out-Null
-$exit = $menu.Items.Add("Exit")
+$exit = $menu.Items.Add("Выход")
 $exit.Add_Click({ $form.Close() })
 $form.ContextMenuStrip = $menu
 

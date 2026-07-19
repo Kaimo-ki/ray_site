@@ -180,7 +180,7 @@ const applyAuthSession = async (session) => {
   authSession = session || null;
   const user = session?.user;
   if (!user) {
-    setAuthStatus("Войди через Google. Email и пароль ниже — запасной способ.");
+    setAuthStatus("Войди через Google или создай email + пароль.");
     return;
   }
 
@@ -321,6 +321,8 @@ async function checkTelegramLink() {
     const data = await response.json();
     if (data.linked) {
       setTelegramLinkStatus("Telegram связан. Web и бот используют одну память.");
+    } else {
+      setTelegramLinkStatus("Telegram пока не связан. Нажми кнопку и отправь код боту.");
     }
   } catch (error) {
     setTelegramLinkStatus("Связку проверю после подключения API.");
@@ -352,7 +354,7 @@ const localRayReply = (text) => {
   if (lower.includes("цель") || lower.includes("план")) return "Давай коротко: цель, срок и первый маленький шаг на сегодня.";
   if (lower.includes("устал") || lower.includes("плохо") || lower.includes("груст")) return "Слышу. Сначала выдох. Напиши, что самое тяжёлое прямо сейчас.";
   if (lower.includes("англий")) return "Ок. Для английского: 15 минут слов, 10 минут аудио и одна короткая фраза вслух.";
-  if (lower.includes("картин") || lower.includes("фото")) return "Фото и картинки лучше отправлять в Telegram-бота. В Web я подключу это через Ray API.";
+  if (lower.includes("картин") || lower.includes("фото")) return "Фото-анализ пока выключен. Когда подключим vision-ключ, я смогу разбирать изображения здесь.";
   return "Понял. Давай проще: что ты хочешь получить в итоге?";
 };
 
@@ -409,13 +411,13 @@ const syncProfile = async () => {
       }),
     });
   } catch (error) {
-    setApiStatus("API сохранён, но профиль пока не отправился. После деплоя Render попробуем снова.");
+    setApiStatus("API сохранён, но профиль пока не отправился. Проверь Railway и попробуй снова.");
   }
 };
 
-const startVoiceInput = (targetInput, button) => {
+const startVoiceInput = (targetInput, button, targetMessages = messages) => {
   if (!SpeechRecognition) {
-    addMessage("Голосовой ввод в этом браузере не поддерживается. На iPhone попробуй диктовку клавиатуры.", "ray");
+    addMessage("Голосовой ввод в этом браузере не поддерживается. На iPhone попробуй диктовку клавиатуры.", "ray", targetMessages);
     return;
   }
 
@@ -430,7 +432,7 @@ const startVoiceInput = (targetInput, button) => {
     targetInput.focus();
   };
   recognition.onerror = () => {
-    addMessage("Не получилось услышать голос. Проверь разрешение микрофона.", "ray");
+    addMessage("Не получилось услышать голос. Проверь разрешение микрофона.", "ray", targetMessages);
   };
   recognition.onend = () => button.classList.remove("active");
   recognition.start();
@@ -575,10 +577,22 @@ authLogout?.addEventListener("click", signOut);
 authLogoutSettings?.addEventListener("click", signOut);
 resetLocalAuth?.addEventListener("click", resetAuthForTesting);
 nextStepButtons.forEach((button) => {
-  button.addEventListener("click", () => showOnboardingStep(onboardingStep + 1));
+  button.addEventListener("click", () => {
+    if (onboardingStep === 0 && supabaseClient && !authSession) {
+      showAuth();
+      setAuthStatus("Сначала войди или создай аккаунт, потом продолжим настройку.");
+      return;
+    }
+    showOnboardingStep(onboardingStep + 1);
+  });
 });
 
 finishOnboarding.addEventListener("click", async () => {
+  if (supabaseClient && !authSession) {
+    showAuth();
+    setAuthStatus("Сначала войди или создай аккаунт, чтобы память была единой.");
+    return;
+  }
   rememberSetting("onboarding_done", "yes");
   rememberSetting("privacy_seen", "yes");
   rememberSetting("profile_name", onboardingName.value.trim());
@@ -634,7 +648,7 @@ saveApiUrl?.addEventListener("click", async () => {
     setApiStatus("Ray API подключён. Теперь чат отвечает через backend.", true);
     await syncProfile();
   } catch (error) {
-    setApiStatus("Ссылка сохранена, но API сейчас не отвечает. Проверь Render URL и переменные.");
+    setApiStatus("Ссылка сохранена, но API сейчас не отвечает. Проверь Railway URL и переменные.");
   }
 });
 
@@ -682,7 +696,8 @@ const applyCompanionColor = (color) => {
 
 const setCompanionVisible = (visible) => {
   companion.classList.toggle("hidden", !visible);
-  toggleCompanion.textContent = visible ? "●" : "○";
+  toggleCompanion?.classList.toggle("active", visible);
+  toggleCompanion?.setAttribute("aria-pressed", visible ? "true" : "false");
   rememberSetting("companion_visible", visible ? "yes" : "no");
 };
 
@@ -764,8 +779,8 @@ toggleCompanion.addEventListener("click", () => {
   setCompanionVisible(companion.classList.contains("hidden"));
 });
 
-voiceInput.addEventListener("click", () => startVoiceInput(input, voiceInput));
-quickVoiceInput.addEventListener("click", () => startVoiceInput(quickChatInput, quickVoiceInput));
+voiceInput.addEventListener("click", () => startVoiceInput(input, voiceInput, messages));
+quickVoiceInput.addEventListener("click", () => startVoiceInput(quickChatInput, quickVoiceInput, quickChatBody));
 
 speakToggle.addEventListener("click", () => {
   voiceEnabled = !voiceEnabled;
@@ -793,4 +808,5 @@ quickChatForm.addEventListener("submit", async (event) => {
   await askRay(text, quickChatBody);
 });
 
+window.lucide?.createIcons();
 initAuth();

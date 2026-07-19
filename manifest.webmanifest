@@ -2,14 +2,14 @@
   "id": "/ray_site/",
   "name": "Рэй",
   "short_name": "Рэй",
-  "description": "Персональный AI-помощник для общения, целей, учебы и фокуса.",
+  "description": "Персональный AI-помощник с одной памятью для сайта и Telegram.",
   "start_url": "/ray_site/",
   "scope": "/ray_site/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
-  "background_color": "#07110f",
-  "theme_color": "#07110f",
+  "background_color": "#f6f8fb",
+  "theme_color": "#f6f8fb",
   "categories": ["productivity", "education", "lifestyle"],
   "launch_handler": {
     "client_mode": "navigate-existing"
@@ -48,9 +48,9 @@
       "icons": [{ "src": "/ray_site/assets/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Настройки приватности",
-      "short_name": "Приватность",
-      "url": "/ray_site/#privacy",
+      "name": "Установка",
+      "short_name": "Установка",
+      "url": "/ray_site/#install",
       "icons": [{ "src": "/ray_site/assets/icon-192.png", "sizes": "192x192" }]
     }
   ]
