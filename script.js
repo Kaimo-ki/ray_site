@@ -14,7 +14,6 @@ const saveApiUrl = document.getElementById("saveApiUrl");
 const apiStatus = document.getElementById("apiStatus");
 const linkTelegram = document.getElementById("linkTelegram");
 const telegramLinkStatus = document.getElementById("telegramLinkStatus");
-const authLinkTelegram = document.getElementById("authLinkTelegram");
 const authTelegramLinkStatus = document.getElementById("authTelegramLinkStatus");
 const companion = document.getElementById("companion");
 const toggleCompanion = document.getElementById("toggleCompanion");
@@ -105,6 +104,7 @@ const showOnboardingStep = (step) => {
   onboardingStep = clamp(step, 0, onboardingSteps.length - 1);
   onboardingSteps.forEach((item, index) => item.classList.toggle("active", index === onboardingStep));
   onboardingDots.forEach((item, index) => item.classList.toggle("active", index === onboardingStep));
+  if (!onboardingDone()) rememberSetting("onboarding_step", String(onboardingStep));
 };
 
 const collectPurposes = () => (
@@ -134,6 +134,23 @@ const setOnboardingNotice = (text) => {
   onboardingNotice.hidden = !text;
 };
 
+const setAccountState = (state, email = "") => {
+  rememberSetting("account_state", state);
+  if (email) rememberSetting("account_email", email);
+};
+
+const clearPendingAccount = () => {
+  localStorage.removeItem("ray_pending_email");
+  if (readSetting("account_state") === "pending_email") localStorage.removeItem("ray_account_state");
+};
+
+const pendingAccountMessage = () => {
+  if (readSetting("account_state") !== "pending_email" && !readSetting("pending_email")) return "";
+  const email = readSetting("pending_email") || readSetting("account_email") || "";
+  if (!email) return "";
+  return `Аккаунт ${email} создан. Теперь подтверди email по письму, потом вернись и нажми “Войти”. Сайт можно пройти дальше.`;
+};
+
 const authModeCopy = {
   login: {
     title: "Войти в Рэй",
@@ -142,7 +159,7 @@ const authModeCopy = {
   },
   signup: {
     title: "Создать аккаунт",
-    note: "Придумай пароль от 8 символов. Если Supabase просит подтверждение, сначала открой письмо.",
+    note: "Email, пароль и повтор пароля. После создания я сразу покажу, что произошло.",
     status: "Заполни email, пароль и повтор пароля.",
   },
   otp: {
@@ -274,10 +291,14 @@ const initAuth = async () => {
     return;
   }
 
-  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  });
   await checkGoogleProvider();
-  const { data } = await supabaseClient.auth.getSession();
-  await applyAuthSession(data.session);
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
@@ -286,21 +307,28 @@ const initAuth = async () => {
     }
     applyAuthSession(session);
   });
+
+  const { data } = await supabaseClient.auth.getSession();
+  await applyAuthSession(data.session);
 };
 
 const applyAuthSession = async (session) => {
   authSession = session || null;
   const user = session?.user;
   if (!user) {
-    setAuthStatus(authModeCopy[authMode]?.status || "Войди через Google или создай email + пароль.");
+    const pendingMessage = pendingAccountMessage();
+    setAuthStatus(pendingMessage || authModeCopy[authMode]?.status || "Войди через Google или создай email + пароль.");
+    if (pendingMessage && !onboardingDone()) setOnboardingNotice(pendingMessage);
     return;
   }
 
   const email = user.email || "аккаунт";
   const name = user.user_metadata?.name || user.user_metadata?.full_name || email;
   const existingSessionId = readSetting("session_id");
+  clearPendingAccount();
   rememberSetting("account_email", email);
   rememberSetting("account_user_id", user.id);
+  setAccountState("signed_in", email);
   if (!existingSessionId) {
     rememberSetting("session_id", `auth-${user.id}`);
   }
@@ -367,6 +395,10 @@ const signInEmail = async () => {
     setAuthStatus(friendlyAuthError(error));
     return;
   }
+  if (!data.session) {
+    setAuthStatus("Supabase не вернул сессию. Если email ещё не подтверждён, открой письмо и попробуй снова.");
+    return;
+  }
   await applyAuthSession(data.session);
 };
 
@@ -427,8 +459,9 @@ const signUpEmail = async () => {
   }
   clearAuthSecrets();
   rememberSetting("pending_email", email);
+  setAccountState("pending_email", email);
   setAuthMode("login", { keepStatus: true });
-  advanceAfterAccess("Аккаунт создан. Если на почту пришло письмо от Supabase, подтверди email. Сайт можно смотреть дальше.");
+  advanceAfterAccess(`Аккаунт ${email} создан. Нужно подтвердить email по письму, потом войти с этим паролем. Сайт можно пройти дальше.`);
 };
 
 const sendEmailOtp = async () => {
@@ -479,6 +512,10 @@ const verifyEmailOtp = async () => {
     setAuthStatus(friendlyAuthError(error));
     return;
   }
+  if (!data.session) {
+    setAuthStatus("Код принят, но Supabase не вернул сессию. Открой ссылку из письма или попробуй Google.");
+    return;
+  }
   await applyAuthSession(data.session);
 };
 
@@ -507,6 +544,8 @@ const signOut = async () => {
   await supabaseClient.auth.signOut();
   localStorage.removeItem("ray_account_email");
   localStorage.removeItem("ray_account_user_id");
+  localStorage.removeItem("ray_account_state");
+  localStorage.removeItem("ray_pending_email");
   setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
 };
 
@@ -515,9 +554,11 @@ const resetAuthForTesting = async () => {
   [
     "ray_account_email",
     "ray_account_user_id",
+    "ray_account_state",
     "ray_pending_email",
     "ray_telegram_linked",
     "ray_onboarding_done",
+    "ray_onboarding_step",
     "ray_privacy_seen",
     "ray_session_id",
     "ray_profile_name",
@@ -775,7 +816,10 @@ if (readSetting("onboarding_done") === "yes") {
   onboarding.classList.remove("show");
   if (!readSetting("privacy_seen")) showConsent();
 } else {
-  showOnboardingStep(0);
+  const savedOnboardingStep = Number.parseInt(readSetting("onboarding_step") || "0", 10);
+  showOnboardingStep(Number.isFinite(savedOnboardingStep) ? savedOnboardingStep : 0);
+  const pendingMessage = pendingAccountMessage();
+  if (pendingMessage) setOnboardingNotice(pendingMessage);
 }
 syncBackgroundInteractivity();
 
@@ -851,6 +895,7 @@ nextStepButtons.forEach((button) => {
 finishOnboarding.addEventListener("click", async () => {
   rememberSetting("onboarding_done", "yes");
   rememberSetting("privacy_seen", "yes");
+  localStorage.removeItem("ray_onboarding_step");
   rememberSetting("profile_name", onboardingName.value.trim());
   rememberSetting("purposes", JSON.stringify(collectPurposes()));
   rememberSetting("memory_allowed", onboardingMemory.checked ? "yes" : "no");
@@ -945,7 +990,6 @@ const startTelegramLink = async (button, options = {}) => {
 };
 
 linkTelegram?.addEventListener("click", () => startTelegramLink(linkTelegram));
-authLinkTelegram?.addEventListener("click", () => startTelegramLink(authLinkTelegram, { autoAdvance: true }));
 telegramLogin?.addEventListener("click", () => startTelegramLink(telegramLogin, { autoAdvance: true }));
 
 const applyCompanionColor = (color) => {
