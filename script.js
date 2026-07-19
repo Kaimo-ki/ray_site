@@ -100,6 +100,10 @@ const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL ||
 const onboardingDone = () => readSetting("onboarding_done") === "yes";
 const canonicalAppUrl = () => `${window.location.origin}${window.location.pathname}`;
 const supabaseConfigured = () => Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
+const API_AUTH_TOKEN_KEY = "ray_api_auth_token";
+const API_ACCOUNT_EMAIL_KEY = "ray_api_account_email";
+const API_ACCOUNT_NAME_KEY = "ray_api_account_name";
+const API_ACCOUNT_USER_ID_KEY = "ray_api_account_user_id";
 const LOCAL_AUTH_ACCOUNTS_KEY = "ray_local_accounts";
 const LOCAL_AUTH_SESSION_KEY = "ray_local_session";
 const ensureSessionId = () => {
@@ -216,6 +220,83 @@ const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const getAuthEmail = () => authEmail?.value.trim().toLowerCase() || "";
 const getAuthPassword = () => authPassword?.value || "";
 const localAuthAvailable = () => !supabaseClient || authServerReady === false;
+const apiAuthAvailable = () => Boolean(getApiUrl());
+const getApiAuthToken = () => localStorage.getItem(API_AUTH_TOKEN_KEY) || "";
+
+const makeApiSession = (data) => ({
+  api: true,
+  token: data.token || getApiAuthToken(),
+  user: {
+    id: String(data.user?.user_id || data.user_id || ""),
+    email: data.user?.email || data.email || "",
+    user_metadata: { name: data.user?.name || data.name || "" },
+    app_metadata: { provider: "ray-api" },
+  },
+});
+
+const saveApiAuthSession = (data) => {
+  if (data.token) localStorage.setItem(API_AUTH_TOKEN_KEY, data.token);
+  const user = data.user || {};
+  if (user.email) localStorage.setItem(API_ACCOUNT_EMAIL_KEY, user.email);
+  if (user.name) localStorage.setItem(API_ACCOUNT_NAME_KEY, user.name);
+  if (user.user_id !== undefined) localStorage.setItem(API_ACCOUNT_USER_ID_KEY, String(user.user_id));
+};
+
+const clearApiAuthSession = () => {
+  localStorage.removeItem(API_AUTH_TOKEN_KEY);
+  localStorage.removeItem(API_ACCOUNT_EMAIL_KEY);
+  localStorage.removeItem(API_ACCOUNT_NAME_KEY);
+  localStorage.removeItem(API_ACCOUNT_USER_ID_KEY);
+};
+
+const apiAuthRequest = async (path, payload = {}) => {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) throw new Error("api_auth_unavailable");
+  const response = await fetch(`${apiUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  let data = {};
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+  if (!response.ok) {
+    const error = new Error(data.detail || data.message || `api_${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+};
+
+const restoreApiSession = async () => {
+  const token = getApiAuthToken();
+  if (!token || !apiAuthAvailable()) return false;
+  try {
+    const data = await apiAuthRequest("/auth/me", { auth_token: token });
+    const sessionData = { token, user: data.user, expires_at: data.expires_at };
+    saveApiAuthSession(sessionData);
+    await applyAuthSession(makeApiSession(sessionData));
+    return true;
+  } catch (error) {
+    if (error.status === 401) clearApiAuthSession();
+    return false;
+  }
+};
+
+const signUpApiAccount = async ({ name, email, password }) => {
+  const data = await apiAuthRequest("/auth/signup", { name, email, password });
+  saveApiAuthSession(data);
+  return makeApiSession(data);
+};
+
+const signInApiAccount = async (email, password) => {
+  const data = await apiAuthRequest("/auth/login", { email, password });
+  saveApiAuthSession(data);
+  return makeApiSession(data);
+};
 
 const randomId = (prefix = "local") => `${prefix}-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
 
@@ -430,6 +511,11 @@ const friendlyAuthError = (error) => {
   if (message.includes("email provider is disabled")) return "Email-вход выключен.";
   if (message.includes("signup is disabled")) return "Регистрация выключена.";
   if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть.";
+  if (message.includes("account_exists")) return "Email уже есть. Нажми Войти.";
+  if (message.includes("invalid_credentials")) return "Email или пароль не тот.";
+  if (message.includes("invalid_email")) return "Нужен нормальный email.";
+  if (message.includes("weak_password")) return "Пароль 8+ символов.";
+  if (message.includes("api_auth_unavailable")) return "Ray API не подключён.";
   if (message.includes("local_account_exists")) return "Email уже есть. Нажми Войти.";
   if (message.includes("local_account_missing")) return "Аккаунта нет. Нажми Создать.";
   if (message.includes("local_invalid_credentials")) return "Email или пароль не тот.";
@@ -521,6 +607,8 @@ const checkGoogleProvider = async () => {
 };
 
 const initAuth = async () => {
+  if (await restoreApiSession()) return;
+
   if (!supabaseConfigured()) {
     setAuthServerOffline();
     await restoreLocalSession();
@@ -587,13 +675,17 @@ const applyAuthSession = async (session) => {
   if (authName && !authName.value.trim()) authName.value = name;
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   clearAuthSecrets();
-  const accountDetail = session?.local ? `${email} · Ray ID на этом устройстве` : email;
+  const accountDetail = session?.api
+    ? `${email} · Ray Account`
+    : session?.local
+      ? `${email} · Ray ID на этом устройстве`
+      : email;
   setAccountPanel("signed-in", accountDetail);
   setAuthStatus(`Вошла: ${email}`);
   if (window.location.hash.includes("access_token") || window.location.search.includes("code=")) {
     window.history.replaceState({}, document.title, canonicalAppUrl());
   }
-  if (session?.local) {
+  if (session?.local || session?.api) {
     rememberSetting("session_id", `auth-${user.id}`);
   }
   await syncProfile();
@@ -660,6 +752,28 @@ const signInEmail = async () => {
     setAuthStatus("Нужен пароль.");
     return;
   }
+  if (apiAuthAvailable() && localAuthAvailable()) {
+    setAuthStatus("Вхожу...");
+    if (emailLogin) emailLogin.disabled = true;
+    try {
+      const session = await signInApiAccount(email, password);
+      await applyAuthSession(session);
+    } catch (error) {
+      if (error.status === 401) {
+        setAuthStatus(friendlyAuthError(error));
+      } else {
+        try {
+          const session = await signInLocalAccount(email, password);
+          await applyAuthSession(session);
+        } catch (localError) {
+          setAuthStatus(friendlyAuthError(error.status ? error : localError));
+        }
+      }
+    } finally {
+      if (emailLogin) emailLogin.disabled = false;
+    }
+    return;
+  }
   if (localAuthAvailable()) {
     setAuthStatus("Вхожу...");
     if (emailLogin) emailLogin.disabled = true;
@@ -722,6 +836,10 @@ const signUpEmail = async () => {
   }
 
   if (currentUser) {
+    if (authSession?.api) {
+      setAuthStatus("Пароль меняется через backend позже.");
+      return;
+    }
     if (authSession?.local) {
       setAuthStatus("Сохраняю...");
       if (emailSignup) emailSignup.disabled = true;
@@ -757,6 +875,31 @@ const signUpEmail = async () => {
 
   if (!isValidEmail(email)) {
     setAuthStatus("Нужен email.");
+    return;
+  }
+
+  if (apiAuthAvailable() && localAuthAvailable()) {
+    setAuthStatus("Создаю...");
+    if (emailSignup) emailSignup.disabled = true;
+    try {
+      const session = await signUpApiAccount({ name, email, password });
+      await applyAuthSession(session);
+    } catch (error) {
+      if (error.status === 409) {
+        setAuthMode("login", { keepStatus: true });
+        if (authEmail) authEmail.value = email;
+        setAuthStatus(friendlyAuthError(error));
+      } else {
+        try {
+          const session = await createLocalAccount({ name, email, password });
+          await applyAuthSession(session);
+        } catch (localError) {
+          setAuthStatus(friendlyAuthError(error.status ? error : localError));
+        }
+      }
+    } finally {
+      if (emailSignup) emailSignup.disabled = false;
+    }
     return;
   }
 
@@ -945,7 +1088,15 @@ const requestPasswordReset = async () => {
 };
 
 const signOut = async () => {
-  if (supabaseClient && !authSession?.local) {
+  const apiToken = getApiAuthToken();
+  if (apiToken && apiAuthAvailable()) {
+    try {
+      await apiAuthRequest("/auth/logout", { auth_token: apiToken });
+    } catch {
+      // The local session must still be cleared if the API is temporarily down.
+    }
+  }
+  if (supabaseClient && !authSession?.local && !authSession?.api) {
     try {
       await supabaseClient.auth.signOut();
     } catch {
@@ -953,6 +1104,7 @@ const signOut = async () => {
     }
   }
   authSession = null;
+  clearApiAuthSession();
   clearLocalSession();
   localStorage.removeItem("ray_account_email");
   localStorage.removeItem("ray_account_user_id");
@@ -970,6 +1122,10 @@ const resetAuthForTesting = async () => {
     "ray_account_user_id",
     "ray_account_state",
     "ray_pending_email",
+    API_AUTH_TOKEN_KEY,
+    API_ACCOUNT_EMAIL_KEY,
+    API_ACCOUNT_NAME_KEY,
+    API_ACCOUNT_USER_ID_KEY,
     "ray_telegram_linked",
     "ray_onboarding_done",
     "ray_onboarding_step",
@@ -996,7 +1152,10 @@ async function checkTelegramLink() {
     const response = await fetch(`${apiUrl}/link/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: ensureSessionId() }),
+      body: JSON.stringify({
+        session_id: ensureSessionId(),
+        auth_token: getApiAuthToken() || undefined,
+      }),
     });
     const data = await response.json();
     if (data.linked) {
@@ -1071,6 +1230,7 @@ const askRay = async (text, target = messages) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: readSetting("session_id") || undefined,
+          auth_token: getApiAuthToken() || undefined,
           message: text,
         }),
       });
@@ -1105,6 +1265,7 @@ const syncProfile = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         session_id: sessionId,
+        auth_token: getApiAuthToken() || undefined,
         name: readSetting("profile_name") || "",
         purposes: JSON.parse(readSetting("purposes") || "[]"),
         memory_allowed: readSetting("memory_allowed") === "yes",
@@ -1397,7 +1558,10 @@ const startTelegramLink = async (button, options = {}) => {
     const response = await fetch(`${apiUrl}/link/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: ensureSessionId() }),
+      body: JSON.stringify({
+        session_id: ensureSessionId(),
+        auth_token: getApiAuthToken() || undefined,
+      }),
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
