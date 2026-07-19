@@ -285,7 +285,7 @@ const friendlyAuthError = (error) => {
   if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google ещё не включён.";
   if (message.includes("redirect")) return "Google redirect не настроен.";
-  if (message.includes("failed to fetch") || message.includes("network") || message.includes("resolve") || message.includes("dns")) return "Auth-сервер не отвечает.";
+  if (message.includes("failed to fetch") || message.includes("network") || message.includes("resolve") || message.includes("dns")) return "Регистрация не подключена.";
   if (message.includes("weak password") || message.includes("password")) return "Пароль 8+ символов.";
   return "Не вышло. Ещё раз.";
 };
@@ -295,7 +295,8 @@ const setAuthServerOffline = () => {
   googleAuthEnabled = false;
   updateGoogleButton();
   setAccountPanel("offline");
-  setAuthStatus("Auth-сервер не отвечает.");
+  setAuthStatus("Регистрация не подключена.");
+  if (authModeNote) authModeNote.textContent = "Нужен живой Supabase Project URL.";
 };
 
 const showAuth = (mode = authSession ? "login" : authMode) => {
@@ -450,13 +451,14 @@ const handlePasswordRecovery = (session) => {
   setAuthStatus("Новый пароль.");
 };
 
-const requireAuthClient = () => {
+const requireAuthClient = (action = "Вход") => {
   if (!supabaseClient) {
-    setAuthStatus("Вход пока не подключён.");
+    setAuthStatus(`${action} не подключён.`);
     return false;
   }
   if (authServerReady === false) {
     setAuthServerOffline();
+    setAuthStatus(`${action}: Supabase URL неверный.`);
     return false;
   }
   return true;
@@ -486,7 +488,6 @@ const signInGoogle = async () => {
 };
 
 const signInEmail = async () => {
-  if (!requireAuthClient()) return;
   const email = getAuthEmail();
   const password = getAuthPassword();
   if (!isValidEmail(email)) {
@@ -497,6 +498,7 @@ const signInEmail = async () => {
     setAuthStatus("Нужен пароль.");
     return;
   }
+  if (!requireAuthClient("Вход")) return;
   setAuthStatus("Проверяю...");
   if (emailLogin) emailLogin.disabled = true;
   let data = null;
@@ -520,7 +522,6 @@ const signInEmail = async () => {
 };
 
 const signUpEmail = async () => {
-  if (!requireAuthClient()) return;
   const currentUser = authSession?.user;
   const name = authName?.value.trim() || onboardingName?.value.trim() || "";
   const email = getAuthEmail() || currentUser?.email || "";
@@ -536,6 +537,7 @@ const signUpEmail = async () => {
   }
 
   if (currentUser) {
+    if (!requireAuthClient("Пароль")) return;
     setAuthStatus("Сохраняю...");
     let error = null;
     try {
@@ -560,6 +562,7 @@ const signUpEmail = async () => {
     return;
   }
 
+  if (!requireAuthClient("Регистрация")) return;
   setAuthStatus("Создаю...");
   if (emailSignup) emailSignup.disabled = true;
   let data = null;
@@ -606,12 +609,12 @@ const signUpEmail = async () => {
 };
 
 const sendEmailOtp = async () => {
-  if (!requireAuthClient()) return;
   const email = getAuthEmail();
   if (!isValidEmail(email)) {
     setAuthStatus("Нужен email.");
     return;
   }
+  if (!requireAuthClient("Код")) return;
   setAuthStatus("Отправляю...");
   if (emailOtp) emailOtp.disabled = true;
   let error = null;
@@ -636,7 +639,6 @@ const sendEmailOtp = async () => {
 };
 
 const verifyEmailOtp = async () => {
-  if (!requireAuthClient()) return;
   const email = getAuthEmail();
   const token = authOtpCode?.value.trim().replace(/\s+/g, "") || "";
   if (!isValidEmail(email)) {
@@ -647,6 +649,7 @@ const verifyEmailOtp = async () => {
     setAuthStatus("Нужно 6 цифр.");
     return;
   }
+  if (!requireAuthClient("Код")) return;
   setAuthStatus("Проверяю...");
   if (verifyOtp) verifyOtp.disabled = true;
   let data = null;
@@ -674,12 +677,12 @@ const verifyEmailOtp = async () => {
 };
 
 const requestPasswordReset = async () => {
-  if (!requireAuthClient()) return;
   const email = getAuthEmail();
   if (!isValidEmail(email)) {
     setAuthStatus("Нужен email.");
     return;
   }
+  if (!requireAuthClient("Пароль")) return;
   setAuthStatus("Отправляю...");
   if (resetPassword) resetPassword.disabled = true;
   let error = null;
