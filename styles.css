@@ -50,6 +50,7 @@ input:focus-visible {
   display: none;
   place-items: center;
   padding: 20px;
+  overflow-y: auto;
   background: rgba(8, 10, 8, .78);
   backdrop-filter: blur(18px);
 }
@@ -59,6 +60,7 @@ input:focus-visible {
 
 .onboarding-card {
   width: min(800px, 100%);
+  margin: auto 0;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   display: flex;
@@ -85,6 +87,17 @@ input:focus-visible {
 }
 
 .onboarding-progress span.active { background: var(--matcha); }
+
+.onboarding-notice {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(159, 186, 115, .45);
+  border-radius: 8px;
+  color: #425a26;
+  background: rgba(159, 186, 115, .18);
+  line-height: 1.45;
+  font-weight: 760;
+}
 
 .onboarding-step { display: none; }
 .onboarding-step.active { display: block; }
@@ -958,6 +971,7 @@ body.companion-rose { --accent: #d76f91; }
   display: none;
   place-items: center;
   padding: 24px;
+  overflow-y: auto;
   background: rgba(8,10,8,.68);
   z-index: 20;
 }
@@ -972,6 +986,7 @@ body.companion-rose { --accent: #d76f91; }
 .consent-card,
 .install-card {
   width: min(560px, 100%);
+  margin: auto 0;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1172,7 +1187,11 @@ body.companion-rose { --accent: #d76f91; }
   .auth-card,
   .consent-card,
   .install-card,
-  .onboarding-card { padding: 20px; }
+  .onboarding-card {
+    margin: 0;
+    max-height: none;
+    padding: 20px;
+  }
 
   .quick-chat {
     left: 16px;

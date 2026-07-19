@@ -34,6 +34,7 @@ const onboardingName = document.getElementById("onboardingName");
 const onboardingMemory = document.getElementById("onboardingMemory");
 const onboardingCompanion = document.getElementById("onboardingCompanion");
 const finishOnboarding = document.getElementById("finishOnboarding");
+const onboardingNotice = document.getElementById("onboardingNotice");
 const onboardingSteps = [...document.querySelectorAll("[data-step]")];
 const onboardingDots = [...document.querySelectorAll("[data-step-dot]")];
 const nextStepButtons = [...document.querySelectorAll("[data-next-step]")];
@@ -47,6 +48,7 @@ const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
 const closeAuth = document.getElementById("closeAuth");
 const googleLogin = document.getElementById("googleLogin");
+const telegramLogin = document.getElementById("telegramLogin");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
 const emailOtp = document.getElementById("emailOtp");
@@ -75,6 +77,7 @@ let googleAuthEnabled = null;
 let authSession = null;
 let authPausedOnboarding = false;
 let authMode = "login";
+let telegramPollTimer = null;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -125,6 +128,12 @@ const setAuthStatus = (text) => {
   if (authStatusModal) authStatusModal.textContent = text;
 };
 
+const setOnboardingNotice = (text) => {
+  if (!onboardingNotice) return;
+  onboardingNotice.textContent = text || "";
+  onboardingNotice.hidden = !text;
+};
+
 const authModeCopy = {
   login: {
     title: "Войти в Рэй",
@@ -138,7 +147,7 @@ const authModeCopy = {
   },
   otp: {
     title: "Войти по коду",
-    note: "Код работает только если в Supabase email-шаблон отправляет {{ .Token }}. Если придёт ссылка, просто нажми её.",
+    note: "Это код на email. Если вместо цифр придёт ссылка, просто открой её.",
     status: "Введи email, получи письмо и затем введи код.",
   },
 };
@@ -215,6 +224,23 @@ const hideAuth = () => {
   syncBackgroundInteractivity();
 };
 
+const advanceAfterAccess = (message) => {
+  const shouldMoveForward = !onboardingDone() && onboardingStep === 0 && Boolean(
+    onboarding?.classList.contains("show") ||
+    onboarding?.classList.contains("auth-paused") ||
+    authPanel?.classList.contains("show")
+  );
+  setAuthStatus(message);
+  setOnboardingNotice(message);
+  hideAuth();
+  if (shouldMoveForward) {
+    onboarding?.classList.add("show");
+    onboarding?.classList.remove("auth-paused");
+    showOnboardingStep(1);
+    syncBackgroundInteractivity();
+  }
+};
+
 const updateGoogleButton = () => {
   if (!googleLogin) return;
   if (googleAuthEnabled === false) {
@@ -272,16 +298,19 @@ const applyAuthSession = async (session) => {
 
   const email = user.email || "аккаунт";
   const name = user.user_metadata?.name || user.user_metadata?.full_name || email;
+  const existingSessionId = readSetting("session_id");
   rememberSetting("account_email", email);
-  rememberSetting("session_id", `auth-${user.id}`);
+  rememberSetting("account_user_id", user.id);
+  if (!existingSessionId) {
+    rememberSetting("session_id", `auth-${user.id}`);
+  }
   if (onboardingName && !onboardingName.value.trim()) onboardingName.value = name;
   if (authName && !authName.value.trim()) authName.value = name;
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
-  setAuthStatus(`Вход выполнен: ${email}`);
-  hideAuth();
   clearAuthSecrets();
   await syncProfile();
   await checkTelegramLink();
+  advanceAfterAccess(`Вход выполнен: ${email}. Продолжаем настройку.`);
 };
 
 const handlePasswordRecovery = (session) => {
@@ -367,8 +396,8 @@ const signUpEmail = async () => {
       setAuthStatus(friendlyAuthError(error));
       return;
     }
-    setAuthStatus("Пароль сохранён. Теперь можно входить и через Google, и через email + пароль.");
     clearAuthSecrets();
+    advanceAfterAccess("Пароль сохранён. Теперь можно входить и через Google, и через email + пароль.");
     return;
   }
 
@@ -397,8 +426,9 @@ const signUpEmail = async () => {
     return;
   }
   clearAuthSecrets();
+  rememberSetting("pending_email", email);
   setAuthMode("login", { keepStatus: true });
-  setAuthStatus("Аккаунт создан. Открой письмо от Supabase и подтверди email. Потом вернись сюда и войди с этим паролем.");
+  advanceAfterAccess("Аккаунт создан. Если на почту пришло письмо от Supabase, подтверди email. Сайт можно смотреть дальше.");
 };
 
 const sendEmailOtp = async () => {
@@ -476,6 +506,7 @@ const signOut = async () => {
   if (!requireAuthClient()) return;
   await supabaseClient.auth.signOut();
   localStorage.removeItem("ray_account_email");
+  localStorage.removeItem("ray_account_user_id");
   setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
 };
 
@@ -483,6 +514,9 @@ const resetAuthForTesting = async () => {
   if (supabaseClient) await supabaseClient.auth.signOut();
   [
     "ray_account_email",
+    "ray_account_user_id",
+    "ray_pending_email",
+    "ray_telegram_linked",
     "ray_onboarding_done",
     "ray_privacy_seen",
     "ray_session_id",
@@ -499,7 +533,7 @@ const resetAuthForTesting = async () => {
 
 async function checkTelegramLink() {
   const apiUrl = getApiUrl();
-  if (!apiUrl || !telegramLinkStatus) return;
+  if (!apiUrl || !telegramLinkStatus) return false;
 
   try {
     const response = await fetch(`${apiUrl}/link/status`, {
@@ -509,14 +543,35 @@ async function checkTelegramLink() {
     });
     const data = await response.json();
     if (data.linked) {
+      rememberSetting("telegram_linked", "yes");
       setTelegramLinkStatus("Telegram связан. Web и бот используют одну память.");
+      return true;
     } else {
+      localStorage.removeItem("ray_telegram_linked");
       setTelegramLinkStatus("Telegram пока не связан. Нажми кнопку и отправь код боту.");
+      return false;
     }
   } catch (error) {
     setTelegramLinkStatus("Связку проверю после подключения API.");
+    return false;
   }
 }
+
+const pollTelegramLink = () => {
+  window.clearInterval(telegramPollTimer);
+  let attempts = 0;
+  telegramPollTimer = window.setInterval(async () => {
+    attempts += 1;
+    const linked = await checkTelegramLink();
+    if (linked) {
+      window.clearInterval(telegramPollTimer);
+      advanceAfterAccess("Telegram связан. Можно продолжать.");
+    } else if (attempts >= 24) {
+      window.clearInterval(telegramPollTimer);
+      setTelegramLinkStatus("Код ещё не подтверждён. Если уже отправила его боту, нажми “Связать Telegram” ещё раз.");
+    }
+  }, 3000);
+};
 
 const addMessage = (text, type = "ray", target = messages) => {
   const node = document.createElement("div");
@@ -787,20 +842,13 @@ resetLocalAuth?.addEventListener("click", resetAuthForTesting);
 nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => {
     if (onboardingStep === 0 && supabaseClient && !authSession) {
-      showAuth("signup");
-      setAuthStatus("Сначала войди или создай аккаунт, потом продолжим настройку.");
-      return;
+      setOnboardingNotice("Можно продолжить сейчас. Аккаунт подключишь позже кнопкой “Аккаунт”.");
     }
     showOnboardingStep(onboardingStep + 1);
   });
 });
 
 finishOnboarding.addEventListener("click", async () => {
-  if (supabaseClient && !authSession) {
-    showAuth("signup");
-    setAuthStatus("Сначала войди или создай аккаунт, чтобы память была единой.");
-    return;
-  }
   rememberSetting("onboarding_done", "yes");
   rememberSetting("privacy_seen", "yes");
   rememberSetting("profile_name", onboardingName.value.trim());
@@ -861,7 +909,7 @@ saveApiUrl?.addEventListener("click", async () => {
   }
 });
 
-const startTelegramLink = async (button) => {
+const startTelegramLink = async (button, options = {}) => {
   const apiUrl = getApiUrl();
   if (!apiUrl) {
     setTelegramLinkStatus("Сначала подключи Ray API.");
@@ -869,6 +917,7 @@ const startTelegramLink = async (button) => {
   }
 
   if (button) button.disabled = true;
+  if (options.autoAdvance) setAuthStatus("Готовлю вход через Telegram...");
   setTelegramLinkStatus("Готовлю код...");
   try {
     const response = await fetch(`${apiUrl}/link/start`, {
@@ -880,12 +929,14 @@ const startTelegramLink = async (button) => {
     const data = await response.json();
     if (data.linked) {
       setTelegramLinkStatus("Telegram уже связан. Web и бот используют одну память.");
+      if (options.autoAdvance) advanceAfterAccess("Telegram уже связан. Можно продолжать.");
       return;
     }
 
     setTelegramLinkStatus(
-      `Код готов: <code>/link ${String(data.code).replace(/[<>&"]/g, "")}</code>. Отправь его боту: <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">открыть Telegram</a>.`
+      `Код готов: <code>/link ${String(data.code).replace(/[<>&"]/g, "")}</code>. Отправь его боту: <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">открыть Telegram</a>. Я проверю связку сам.`
     );
+    if (options.autoAdvance) pollTelegramLink();
   } catch (error) {
     setTelegramLinkStatus("Не получилось создать код. Проверь Railway API и попробуй ещё раз.");
   } finally {
@@ -894,7 +945,8 @@ const startTelegramLink = async (button) => {
 };
 
 linkTelegram?.addEventListener("click", () => startTelegramLink(linkTelegram));
-authLinkTelegram?.addEventListener("click", () => startTelegramLink(authLinkTelegram));
+authLinkTelegram?.addEventListener("click", () => startTelegramLink(authLinkTelegram, { autoAdvance: true }));
+telegramLogin?.addEventListener("click", () => startTelegramLink(telegramLogin, { autoAdvance: true }));
 
 const applyCompanionColor = (color) => {
   document.body.classList.remove("companion-amber", "companion-blue", "companion-rose");

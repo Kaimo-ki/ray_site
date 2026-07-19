@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=23">
+  <link rel="stylesheet" href="styles.css?v=24">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
@@ -24,6 +24,7 @@
         <span data-step-dot="2"></span>
         <span data-step-dot="3"></span>
       </div>
+      <p class="onboarding-notice" id="onboardingNotice" hidden></p>
 
       <article class="onboarding-step active" data-step="0">
         <p class="eyebrow">Аккаунт</p>
@@ -507,12 +508,16 @@
       <div class="auth-tabs" role="tablist" aria-label="Способ входа">
         <button class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
         <button class="auth-tab" type="button" data-auth-mode="signup">Создать</button>
-        <button class="auth-tab" type="button" data-auth-mode="otp">Код</button>
+        <button class="auth-tab" type="button" data-auth-mode="otp">Email-код</button>
       </div>
 
       <button class="button primary full-button" type="button" id="googleLogin">
         <i data-lucide="chrome"></i>
         Войти через Google
+      </button>
+      <button class="button ghost full-button" type="button" id="telegramLogin">
+        <i data-lucide="send"></i>
+        Войти через Telegram
       </button>
       <p class="auth-mode-note" id="authModeNote">Если аккаунт уже есть, введи email и пароль.</p>
 
@@ -566,8 +571,8 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=23"></script>
+  <script src="config.js?v=24"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=23"></script>
+  <script src="script.js?v=24"></script>
 </body>
 </html>
