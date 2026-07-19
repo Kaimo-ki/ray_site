@@ -1,4 +1,4 @@
-const CACHE_NAME = "ray-web-v18";
+const CACHE_NAME = "ray-web-v19";
 const ASSETS = [
   "/ray_site/",
   "/ray_site/index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "/ray_site/assets/ray-avatar.png",
   "/ray_site/assets/icon-192.png",
   "/ray_site/assets/icon-512.png",
+  "/ray_site/downloads/Uninstall-Ray.cmd",
 ];
 
 self.addEventListener("install", (event) => {
