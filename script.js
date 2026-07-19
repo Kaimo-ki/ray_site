@@ -43,6 +43,7 @@ const authStatusModal = document.getElementById("authStatusModal");
 const authPanel = document.getElementById("authPanel");
 const authTitle = document.getElementById("authTitle");
 const openAuth = document.getElementById("openAuth");
+const openLoginOnboarding = document.getElementById("openLoginOnboarding");
 const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
 const closeAuth = document.getElementById("closeAuth");
@@ -66,6 +67,7 @@ const authModeNote = document.getElementById("authModeNote");
 const authModeButtons = [...document.querySelectorAll("[data-auth-mode]")];
 const authModeBlocks = [...document.querySelectorAll("[data-auth-for]")];
 const authLoggedInBlocks = [...document.querySelectorAll("[data-auth-logged-in]")];
+const authProviderGrid = document.querySelector(".auth-provider-grid");
 const appShell = document.querySelector(".app-shell");
 
 let companionMoveTimer = null;
@@ -157,16 +159,16 @@ const authModeCopy = {
   login: {
     title: "Вход",
     note: "Email + пароль.",
-    status: "Выбери способ.",
+    status: "Вход.",
   },
   signup: {
     title: "Новый профиль",
-    note: "Email + новый пароль.",
-    status: "Заполни поля.",
+    note: "Имя, email, пароль.",
+    status: "Создать.",
   },
   otp: {
     title: "Код",
-    note: "Код из письма.",
+    note: "Email или Telegram.",
     status: "Код.",
   },
 };
@@ -190,7 +192,8 @@ const setAuthMode = (mode, options = {}) => {
   });
   authModeBlocks.forEach((block) => {
     const modes = (block.dataset.authFor || "").split(/\s+/);
-    block.hidden = !modes.includes(authMode);
+    const providerIsUnavailable = block === authProviderGrid && googleAuthEnabled === false;
+    block.hidden = !modes.includes(authMode) || providerIsUnavailable;
   });
   if (authTitle) authTitle.textContent = authModeCopy[authMode].title;
   if (authModeNote) authModeNote.textContent = authModeCopy[authMode].note;
@@ -272,9 +275,16 @@ const updateGoogleButton = () => {
   if (googleAuthEnabled === false) {
     setGoogleLoginText("Google выкл.");
     googleLogin.classList.add("is-muted");
+    googleLogin.hidden = true;
+    if (authProviderGrid) authProviderGrid.hidden = true;
   } else {
     setGoogleLoginText("Google");
     googleLogin.classList.remove("is-muted");
+    googleLogin.hidden = false;
+    if (authProviderGrid) {
+      const modes = (authProviderGrid.dataset.authFor || "").split(/\s+/);
+      authProviderGrid.hidden = !modes.includes(authMode);
+    }
   }
 };
 
@@ -883,6 +893,7 @@ installApp.addEventListener("click", async () => {
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
 openAuth?.addEventListener("click", () => showAuth("login"));
+openLoginOnboarding?.addEventListener("click", () => showAuth("login"));
 openAuthOnboarding?.addEventListener("click", () => showAuth("signup"));
 openAuthSettings?.addEventListener("click", () => showAuth("login"));
 closeAuth?.addEventListener("click", hideAuth);
@@ -911,7 +922,7 @@ finishOnboarding.addEventListener("click", async () => {
   rememberSetting("onboarding_done", "yes");
   rememberSetting("privacy_seen", "yes");
   localStorage.removeItem("ray_onboarding_step");
-  rememberSetting("profile_name", onboardingName.value.trim());
+  rememberSetting("profile_name", (onboardingName?.value || "").trim());
   rememberSetting("purposes", JSON.stringify(collectPurposes()));
   rememberSetting("memory_allowed", onboardingMemory.checked ? "yes" : "no");
   rememberSetting("companion_allowed", onboardingCompanion.checked ? "yes" : "no");

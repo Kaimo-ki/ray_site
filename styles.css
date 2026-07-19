@@ -175,6 +175,74 @@ input:focus-visible {
   line-height: 1.48;
 }
 
+.start-status {
+  width: fit-content;
+  min-width: 150px;
+  color: #365020;
+  background: rgba(159, 186, 115, .16);
+}
+
+.start-menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.start-choice {
+  min-height: 132px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.start-choice:hover {
+  transform: translateY(-2px);
+  border-color: rgba(159, 186, 115, .65);
+  background: #f3f6ee;
+}
+
+.start-choice svg {
+  width: 24px;
+  height: 24px;
+  color: #6f8f45;
+}
+
+.start-choice strong {
+  font-size: 23px;
+  line-height: 1;
+}
+
+.start-choice span {
+  color: var(--muted);
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.start-choice.main-choice {
+  color: var(--dark);
+  border-color: var(--matcha);
+  background: var(--matcha);
+}
+
+.start-choice.main-choice svg,
+.start-choice.main-choice span {
+  color: rgba(8, 10, 8, .72);
+}
+
+.start-choice.quiet-choice {
+  background: var(--surface);
+}
+
 .link-box code {
   display: inline-block;
   padding: 4px 8px;
@@ -1259,6 +1327,7 @@ body.companion-rose { --accent: #d76f91; }
 
   .health-grid,
   .purpose-grid,
+  .start-menu,
   .flow-board,
   .install-board,
   .ecosystem-grid,

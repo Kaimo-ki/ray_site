@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
@@ -27,25 +27,27 @@
       <p class="onboarding-notice" id="onboardingNotice" hidden></p>
 
       <article class="onboarding-step active" data-step="0">
-        <p class="eyebrow">Старт</p>
+        <p class="eyebrow">Ray ID</p>
         <h1>Привет. Я Рэй.</h1>
-        <p>Войди, чтобы память была общей. Можно продолжить и без входа.</p>
-        <label class="field-label">
-          Имя
-          <input id="onboardingName" type="text" autocomplete="name" placeholder="Как звать">
-        </label>
-        <div class="auth-box">
-          <strong>Аккаунт</strong>
-          <p id="authStatus">Гость</p>
-          <button class="button ghost" type="button" id="openAuthOnboarding">
-            <i data-lucide="user-round"></i>
-            Войти
+        <p>Выбери старт.</p>
+        <p class="auth-status-line start-status" id="authStatus">Гость</p>
+        <div class="start-menu" aria-label="Старт Рея">
+          <button class="start-choice main-choice" type="button" id="openLoginOnboarding">
+            <i data-lucide="log-in"></i>
+            <strong>Войти</strong>
+            <span>уже есть аккаунт</span>
+          </button>
+          <button class="start-choice" type="button" id="openAuthOnboarding">
+            <i data-lucide="user-plus"></i>
+            <strong>Создать</strong>
+            <span>новый Ray ID</span>
+          </button>
+          <button class="start-choice quiet-choice" type="button" data-next-step>
+            <i data-lucide="play"></i>
+            <strong>Гость</strong>
+            <span>без общей памяти</span>
           </button>
         </div>
-        <button class="button primary" type="button" data-next-step>
-          <i data-lucide="arrow-right"></i>
-          Начать
-        </button>
       </article>
 
       <article class="onboarding-step" data-step="1">
@@ -580,8 +582,8 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=27"></script>
+  <script src="config.js?v=28"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=27"></script>
+  <script src="script.js?v=28"></script>
 </body>
 </html>
