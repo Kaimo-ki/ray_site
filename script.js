@@ -84,6 +84,7 @@ let voiceEnabled = localStorage.getItem("ray_voice_reply") === "yes";
 let onboardingStep = 0;
 let supabaseClient = null;
 let googleAuthEnabled = null;
+let authServerReady = null;
 let authSession = null;
 let authPausedOnboarding = false;
 let authMode = "login";
@@ -284,8 +285,17 @@ const friendlyAuthError = (error) => {
   if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google ещё не включён.";
   if (message.includes("redirect")) return "Google redirect не настроен.";
+  if (message.includes("failed to fetch") || message.includes("network") || message.includes("resolve") || message.includes("dns")) return "Auth-сервер не отвечает.";
   if (message.includes("weak password") || message.includes("password")) return "Пароль 8+ символов.";
   return "Не вышло. Ещё раз.";
+};
+
+const setAuthServerOffline = () => {
+  authServerReady = false;
+  googleAuthEnabled = false;
+  updateGoogleButton();
+  setAccountPanel("offline");
+  setAuthStatus("Auth-сервер не отвечает.");
 };
 
 const showAuth = (mode = authSession ? "login" : authMode) => {
@@ -349,13 +359,13 @@ const checkGoogleProvider = async () => {
     const response = await fetch(`${cleanUrl(window.SUPABASE_URL)}/auth/v1/settings`, {
       headers: { apikey: window.SUPABASE_ANON_KEY },
     });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error(`Auth settings ${response.status}`);
     const settings = await response.json();
+    authServerReady = true;
     googleAuthEnabled = Boolean(settings.external?.google);
     updateGoogleButton();
   } catch {
-    googleAuthEnabled = null;
-    updateGoogleButton();
+    setAuthServerOffline();
   }
 };
 
@@ -374,6 +384,7 @@ const initAuth = async () => {
     },
   });
   await checkGoogleProvider();
+  if (authServerReady === false) return;
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
@@ -383,8 +394,12 @@ const initAuth = async () => {
     applyAuthSession(session);
   });
 
-  const { data } = await supabaseClient.auth.getSession();
-  await applyAuthSession(data.session);
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    await applyAuthSession(data.session);
+  } catch {
+    setAuthServerOffline();
+  }
 };
 
 const applyAuthSession = async (session) => {
@@ -440,6 +455,10 @@ const requireAuthClient = () => {
     setAuthStatus("Вход пока не подключён.");
     return false;
   }
+  if (authServerReady === false) {
+    setAuthServerOffline();
+    return false;
+  }
   return true;
 };
 
@@ -451,13 +470,18 @@ const signInGoogle = async () => {
   }
   setAuthStatus("Открываю Google...");
   if (googleLogin) googleLogin.disabled = true;
-  const { error } = await supabaseClient.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: canonicalAppUrl() },
-  });
-  if (error) {
-    if (googleLogin) googleLogin.disabled = false;
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: canonicalAppUrl() },
+    });
+    if (error) {
+      setAuthStatus(friendlyAuthError(error));
+    }
+  } catch (error) {
     setAuthStatus(friendlyAuthError(error));
+  } finally {
+    if (googleLogin) googleLogin.disabled = false;
   }
 };
 
@@ -475,8 +499,15 @@ const signInEmail = async () => {
   }
   setAuthStatus("Проверяю...");
   if (emailLogin) emailLogin.disabled = true;
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (emailLogin) emailLogin.disabled = false;
+  let data = null;
+  let error = null;
+  try {
+    ({ data, error } = await supabaseClient.auth.signInWithPassword({ email, password }));
+  } catch (requestError) {
+    error = requestError;
+  } finally {
+    if (emailLogin) emailLogin.disabled = false;
+  }
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -506,10 +537,15 @@ const signUpEmail = async () => {
 
   if (currentUser) {
     setAuthStatus("Сохраняю...");
-    const { error } = await supabaseClient.auth.updateUser({
-      password,
-      data: { name: name || currentUser.user_metadata?.name || currentUser.email },
-    });
+    let error = null;
+    try {
+      ({ error } = await supabaseClient.auth.updateUser({
+        password,
+        data: { name: name || currentUser.user_metadata?.name || currentUser.email },
+      }));
+    } catch (requestError) {
+      error = requestError;
+    }
     if (error) {
       setAuthStatus(friendlyAuthError(error));
       return;
@@ -526,17 +562,31 @@ const signUpEmail = async () => {
 
   setAuthStatus("Создаю...");
   if (emailSignup) emailSignup.disabled = true;
-  const { data, error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: canonicalAppUrl(),
-      data: { name },
-    },
-  });
-  if (emailSignup) emailSignup.disabled = false;
+  let data = null;
+  let error = null;
+  try {
+    ({ data, error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: canonicalAppUrl(),
+        data: { name },
+      },
+    }));
+  } catch (requestError) {
+    error = requestError;
+  } finally {
+    if (emailSignup) emailSignup.disabled = false;
+  }
   if (error) {
     setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    clearAuthSecrets();
+    setAuthMode("login", { keepStatus: true });
+    if (authEmail) authEmail.value = email;
+    setAuthStatus("Email уже есть. Нажми Войти.");
     return;
   }
   if (data.session) {
@@ -564,14 +614,20 @@ const sendEmailOtp = async () => {
   }
   setAuthStatus("Отправляю...");
   if (emailOtp) emailOtp.disabled = true;
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: canonicalAppUrl(),
-      shouldCreateUser: true,
-    },
-  });
-  if (emailOtp) emailOtp.disabled = false;
+  let error = null;
+  try {
+    ({ error } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: canonicalAppUrl(),
+        shouldCreateUser: true,
+      },
+    }));
+  } catch (requestError) {
+    error = requestError;
+  } finally {
+    if (emailOtp) emailOtp.disabled = false;
+  }
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -593,12 +649,19 @@ const verifyEmailOtp = async () => {
   }
   setAuthStatus("Проверяю...");
   if (verifyOtp) verifyOtp.disabled = true;
-  const { data, error } = await supabaseClient.auth.verifyOtp({
-    email,
-    token,
-    type: "email",
-  });
-  if (verifyOtp) verifyOtp.disabled = false;
+  let data = null;
+  let error = null;
+  try {
+    ({ data, error } = await supabaseClient.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    }));
+  } catch (requestError) {
+    error = requestError;
+  } finally {
+    if (verifyOtp) verifyOtp.disabled = false;
+  }
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -619,10 +682,16 @@ const requestPasswordReset = async () => {
   }
   setAuthStatus("Отправляю...");
   if (resetPassword) resetPassword.disabled = true;
-  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-    redirectTo: canonicalAppUrl(),
-  });
-  if (resetPassword) resetPassword.disabled = false;
+  let error = null;
+  try {
+    ({ error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: canonicalAppUrl(),
+    }));
+  } catch (requestError) {
+    error = requestError;
+  } finally {
+    if (resetPassword) resetPassword.disabled = false;
+  }
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -632,7 +701,11 @@ const requestPasswordReset = async () => {
 
 const signOut = async () => {
   if (!requireAuthClient()) return;
-  await supabaseClient.auth.signOut();
+  try {
+    await supabaseClient.auth.signOut();
+  } catch {
+    // Local cleanup is still useful if the remote sign-out request fails.
+  }
   authSession = null;
   localStorage.removeItem("ray_account_email");
   localStorage.removeItem("ray_account_user_id");
