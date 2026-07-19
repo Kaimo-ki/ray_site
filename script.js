@@ -54,6 +54,7 @@ const resetLocalAuth = document.getElementById("resetLocalAuth");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
+const appShell = document.querySelector(".app-shell");
 
 let companionMoveTimer = null;
 let dragState = null;
@@ -63,6 +64,7 @@ let onboardingStep = 0;
 let supabaseClient = null;
 let googleAuthEnabled = null;
 let authSession = null;
+let authPausedOnboarding = false;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -71,6 +73,8 @@ const readSetting = (key) => localStorage.getItem(`ray_${key}`);
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const cleanUrl = (value) => value.trim().replace(/\/+$/, "");
 const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL || "");
+const onboardingDone = () => readSetting("onboarding_done") === "yes";
+const canonicalAppUrl = () => `${window.location.origin}${window.location.pathname}`;
 const supabaseConfigured = () => Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
 const ensureSessionId = () => {
   const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
@@ -111,25 +115,48 @@ const setAuthStatus = (text) => {
   if (authStatusModal) authStatusModal.textContent = text;
 };
 
+const syncBackgroundInteractivity = () => {
+  const overlayIsOpen = Boolean(
+    (onboarding?.classList.contains("show") && !onboarding?.classList.contains("auth-paused")) ||
+    authPanel?.classList.contains("show") ||
+    consentPanel?.classList.contains("show") ||
+    installPanel?.classList.contains("show")
+  );
+  appShell?.toggleAttribute("inert", overlayIsOpen);
+  appShell?.setAttribute("aria-hidden", overlayIsOpen ? "true" : "false");
+};
+
 const friendlyAuthError = (error) => {
   const message = String(error?.message || error || "").toLowerCase();
   if (!message) return "Не получилось войти. Попробуй ещё раз.";
   if (message.includes("invalid login credentials")) return "Неверный email или пароль. Если аккаунта ещё нет, нажми “Зарегистрироваться”.";
   if (message.includes("email not confirmed")) return "Email ещё не подтверждён. Открой письмо от Supabase и подтверди вход.";
+  if (message.includes("rate limit")) return "Supabase временно ограничил письма на бесплатном тарифе. Попробуй позже или войди через Google.";
   if (message.includes("email provider is disabled")) return "В Supabase выключен вход по email. Включи Authentication -> Providers -> Email.";
   if (message.includes("signup is disabled")) return "В Supabase выключена регистрация. Включи регистрацию в Authentication.";
   if (message.includes("user already registered")) return "Такой email уже зарегистрирован. Нажми “Войти” или восстановим пароль позже.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google-вход ещё не включён в Supabase. Пока используй email и пароль.";
+  if (message.includes("redirect")) return "Google не принял адрес возврата. В Supabase нужно добавить https://kaimo-ki.github.io/ray_site/ в Redirect URLs.";
   if (message.includes("password")) return "Проверь пароль: минимум 6 символов.";
   return error?.message || "Не получилось войти. Попробуй ещё раз.";
 };
 
 const showAuth = () => {
+  authPausedOnboarding = Boolean(onboarding?.classList.contains("show") && !onboardingDone());
+  if (authPausedOnboarding) onboarding?.classList.add("auth-paused");
   authPanel?.classList.add("show");
+  syncBackgroundInteractivity();
   setTimeout(() => authEmail?.focus(), 80);
 };
 
-const hideAuth = () => authPanel?.classList.remove("show");
+const hideAuth = () => {
+  authPanel?.classList.remove("show");
+  if (authPausedOnboarding && !onboardingDone()) {
+    onboarding?.classList.remove("auth-paused");
+  }
+  authPausedOnboarding = false;
+  syncBackgroundInteractivity();
+};
 
 const updateGoogleButton = () => {
   if (!googleLogin) return;
@@ -161,7 +188,6 @@ const checkGoogleProvider = async () => {
 const initAuth = async () => {
   if (!supabaseConfigured()) {
     setAuthStatus("Вход через Google/email готов в коде. Осталось подключить Supabase URL и anon key.");
-    showAuth();
     return;
   }
 
@@ -169,7 +195,6 @@ const initAuth = async () => {
   await checkGoogleProvider();
   const { data } = await supabaseClient.auth.getSession();
   await applyAuthSession(data.session);
-  if (!data.session) showAuth();
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     applyAuthSession(session);
@@ -211,11 +236,16 @@ const signInGoogle = async () => {
     setAuthStatus("Google-вход ещё не включён в Supabase. Включи Authentication -> Providers -> Google, потом кнопка заработает.");
     return;
   }
+  setAuthStatus("Открываю Google...");
+  if (googleLogin) googleLogin.disabled = true;
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: window.location.href.split("#")[0] },
+    options: { redirectTo: canonicalAppUrl() },
   });
-  if (error) setAuthStatus(friendlyAuthError(error));
+  if (error) {
+    if (googleLogin) googleLogin.disabled = false;
+    setAuthStatus(friendlyAuthError(error));
+  }
 };
 
 const signInEmail = async () => {
@@ -227,7 +257,9 @@ const signInEmail = async () => {
     return;
   }
   setAuthStatus("Проверяю аккаунт...");
+  if (emailLogin) emailLogin.disabled = true;
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (emailLogin) emailLogin.disabled = false;
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -265,14 +297,16 @@ const signUpEmail = async () => {
     return;
   }
   setAuthStatus("Создаю аккаунт...");
+  if (emailSignup) emailSignup.disabled = true;
   const { data, error } = await supabaseClient.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: window.location.href.split("#")[0],
+      emailRedirectTo: canonicalAppUrl(),
       data: { name },
     },
   });
+  if (emailSignup) emailSignup.disabled = false;
   if (error) {
     setAuthStatus(friendlyAuthError(error));
     return;
@@ -289,7 +323,6 @@ const signOut = async () => {
   await supabaseClient.auth.signOut();
   localStorage.removeItem("ray_account_email");
   setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
-  showAuth();
 };
 
 const resetAuthForTesting = async () => {
@@ -303,8 +336,10 @@ const resetAuthForTesting = async () => {
     "ray_purposes",
   ].forEach((key) => localStorage.removeItem(key));
   onboarding?.classList.add("show");
+  onboarding?.classList.remove("auth-paused");
   showOnboardingStep(0);
-  showAuth();
+  hideAuth();
+  syncBackgroundInteractivity();
   setAuthStatus("Тестовый сброс готов. Теперь можно проверить вход как новый пользователь.");
 };
 
@@ -508,11 +543,21 @@ const showConsent = () => {
   , Boolean(getApiUrl()));
   checkTelegramLink();
   consentPanel.classList.add("show");
+  syncBackgroundInteractivity();
 };
 
-const hideConsent = () => consentPanel.classList.remove("show");
-const showInstall = () => installPanel.classList.add("show");
-const hideInstall = () => installPanel.classList.remove("show");
+const hideConsent = () => {
+  consentPanel.classList.remove("show");
+  syncBackgroundInteractivity();
+};
+const showInstall = () => {
+  installPanel.classList.add("show");
+  syncBackgroundInteractivity();
+};
+const hideInstall = () => {
+  installPanel.classList.remove("show");
+  syncBackgroundInteractivity();
+};
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
 if (readSetting("onboarding_done") === "yes") {
@@ -521,6 +566,7 @@ if (readSetting("onboarding_done") === "yes") {
 } else {
   showOnboardingStep(0);
 }
+syncBackgroundInteractivity();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -600,6 +646,7 @@ finishOnboarding.addEventListener("click", async () => {
   rememberSetting("memory_allowed", onboardingMemory.checked ? "yes" : "no");
   rememberSetting("companion_allowed", onboardingCompanion.checked ? "yes" : "no");
   onboarding.classList.remove("show");
+  syncBackgroundInteractivity();
   setCompanionVisible(onboardingCompanion.checked);
   startCompanionMovement();
   addMessage("Готово. Я здесь, можно писать или говорить.", "ray");
@@ -675,7 +722,7 @@ const startTelegramLink = async (button) => {
     }
 
     setTelegramLinkStatus(
-      `Отправь боту в Telegram: <code>/link ${data.code}</code>. Код живёт около 10 минут.`
+      `Код готов: <code>/link ${String(data.code).replace(/[<>&"]/g, "")}</code>. Отправь его боту: <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">открыть Telegram</a>.`
     );
   } catch (error) {
     setTelegramLinkStatus("Не получилось создать код. Проверь Railway API и попробуй ещё раз.");
