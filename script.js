@@ -100,6 +100,8 @@ const getApiUrl = () => cleanUrl(readSetting("api_url") || window.RAY_API_URL ||
 const onboardingDone = () => readSetting("onboarding_done") === "yes";
 const canonicalAppUrl = () => `${window.location.origin}${window.location.pathname}`;
 const supabaseConfigured = () => Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
+const LOCAL_AUTH_ACCOUNTS_KEY = "ray_local_accounts";
+const LOCAL_AUTH_SESSION_KEY = "ray_local_session";
 const ensureSessionId = () => {
   const sessionId = readSetting("session_id") || `web-${window.crypto?.randomUUID?.() || Date.now()}`;
   rememberSetting("session_id", sessionId);
@@ -156,8 +158,8 @@ const setAccountPanel = (state, detail = "") => {
   }
 
   if (state === "offline") {
-    authStatusSettings.textContent = "Вход не подключён";
-    authStatusHint.textContent = "Supabase сейчас не настроен.";
+    authStatusSettings.textContent = "Ray ID";
+    authStatusHint.textContent = detail || "Можно создать аккаунт на этом устройстве.";
     return;
   }
 
@@ -213,6 +215,138 @@ const authModeCopy = {
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const getAuthEmail = () => authEmail?.value.trim().toLowerCase() || "";
 const getAuthPassword = () => authPassword?.value || "";
+const localAuthAvailable = () => !supabaseClient || authServerReady === false;
+
+const randomId = (prefix = "local") => `${prefix}-${window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`}`;
+
+const randomSalt = () => {
+  const bytes = new Uint8Array(16);
+  if (window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+    return [...bytes].map((item) => item.toString(16).padStart(2, "0")).join("");
+  }
+  return randomId("salt");
+};
+
+const bytesToHex = (buffer) => (
+  [...new Uint8Array(buffer)].map((item) => item.toString(16).padStart(2, "0")).join("")
+);
+
+const fallbackPasswordHash = (value) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv-${(hash >>> 0).toString(16)}`;
+};
+
+const hashLocalPassword = async (password, salt) => {
+  const value = `${salt}:${password}`;
+  if (window.crypto?.subtle && window.TextEncoder) {
+    const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+    return `sha256-${bytesToHex(digest)}`;
+  }
+  return fallbackPasswordHash(value);
+};
+
+const readLocalAccounts = () => {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_AUTH_ACCOUNTS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+};
+
+const writeLocalAccounts = (accounts) => {
+  localStorage.setItem(LOCAL_AUTH_ACCOUNTS_KEY, JSON.stringify(accounts));
+};
+
+const makeLocalSession = (account) => ({
+  local: true,
+  user: {
+    id: account.id,
+    email: account.email,
+    user_metadata: { name: account.name || account.email },
+    app_metadata: { provider: "ray-local" },
+  },
+});
+
+const saveLocalSession = (account) => {
+  localStorage.setItem(LOCAL_AUTH_SESSION_KEY, JSON.stringify({
+    id: account.id,
+    email: account.email,
+  }));
+};
+
+const clearLocalSession = () => {
+  localStorage.removeItem(LOCAL_AUTH_SESSION_KEY);
+};
+
+const restoreLocalSession = async () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_AUTH_SESSION_KEY) || "null");
+    const email = saved?.email?.toLowerCase();
+    const account = email ? readLocalAccounts()[email] : null;
+    if (!account || account.id !== saved.id) return false;
+    await applyAuthSession(makeLocalSession(account));
+    return true;
+  } catch {
+    clearLocalSession();
+    return false;
+  }
+};
+
+const createLocalAccount = async ({ name, email, password }) => {
+  const accounts = readLocalAccounts();
+  const normalizedEmail = email.toLowerCase();
+  if (accounts[normalizedEmail]) throw new Error("local_account_exists");
+  const salt = randomSalt();
+  const account = {
+    id: randomId("ray"),
+    email: normalizedEmail,
+    name: name || normalizedEmail.split("@")[0],
+    salt,
+    passwordHash: await hashLocalPassword(password, salt),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  accounts[normalizedEmail] = account;
+  writeLocalAccounts(accounts);
+  saveLocalSession(account);
+  return makeLocalSession(account);
+};
+
+const signInLocalAccount = async (email, password) => {
+  const account = readLocalAccounts()[email.toLowerCase()];
+  if (!account) throw new Error("local_account_missing");
+  const passwordHash = await hashLocalPassword(password, account.salt);
+  if (passwordHash !== account.passwordHash) throw new Error("local_invalid_credentials");
+  saveLocalSession(account);
+  return makeLocalSession(account);
+};
+
+const updateLocalAccountPassword = async ({ user, name, password }) => {
+  const accounts = readLocalAccounts();
+  const email = user.email.toLowerCase();
+  const account = accounts[email];
+  if (!account) throw new Error("local_account_missing");
+  const salt = randomSalt();
+  account.name = name || account.name || email.split("@")[0];
+  account.salt = salt;
+  account.passwordHash = await hashLocalPassword(password, salt);
+  account.updatedAt = new Date().toISOString();
+  accounts[email] = account;
+  writeLocalAccounts(accounts);
+  saveLocalSession(account);
+  return makeLocalSession(account);
+};
+
+const authNetworkFailed = (error) => {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("failed to fetch") || message.includes("network") || message.includes("resolve") || message.includes("dns");
+};
+
 const clearAuthSecrets = () => {
   if (authPassword) authPassword.value = "";
   if (authPasswordConfirm) authPasswordConfirm.value = "";
@@ -250,11 +384,24 @@ const syncAuthBlocks = () => {
     block.hidden = (signedIn && !editingPassword) || !modes.includes(authMode) || providerIsUnavailable;
   });
   if (authTitle) authTitle.textContent = authModeCopy[authMode].title;
-  if (authModeNote) authModeNote.textContent = authModeCopy[authMode].note;
+  if (authModeNote) {
+    if (localAuthAvailable() && ["login", "signup"].includes(authMode)) {
+      authModeNote.textContent = authMode === "signup"
+        ? "Ray ID сохранится на этом устройстве."
+        : "Вход в Ray ID на этом устройстве.";
+    } else {
+      authModeNote.textContent = authModeCopy[authMode].note;
+    }
+  }
   if (authPassword) {
     authPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
   }
-  if (authSignedInEmail) authSignedInEmail.textContent = authSession?.user?.email || "Аккаунт активен";
+  if (authSignedInEmail) {
+    const email = authSession?.user?.email;
+    authSignedInEmail.textContent = email
+      ? `${email}${authSession?.local ? " · на этом устройстве" : ""}`
+      : "Аккаунт активен";
+  }
 };
 
 const setGoogleLoginText = (text) => {
@@ -283,6 +430,9 @@ const friendlyAuthError = (error) => {
   if (message.includes("email provider is disabled")) return "Email-вход выключен.";
   if (message.includes("signup is disabled")) return "Регистрация выключена.";
   if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть.";
+  if (message.includes("local_account_exists")) return "Email уже есть. Нажми Войти.";
+  if (message.includes("local_account_missing")) return "Аккаунта нет. Нажми Создать.";
+  if (message.includes("local_invalid_credentials")) return "Email или пароль не тот.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google ещё не включён.";
   if (message.includes("redirect")) return "Google redirect не настроен.";
   if (message.includes("failed to fetch") || message.includes("network") || message.includes("resolve") || message.includes("dns")) return "Регистрация не подключена.";
@@ -294,9 +444,9 @@ const setAuthServerOffline = () => {
   authServerReady = false;
   googleAuthEnabled = false;
   updateGoogleButton();
-  setAccountPanel("offline");
-  setAuthStatus("Регистрация не подключена.");
-  if (authModeNote) authModeNote.textContent = "Нужен живой Supabase Project URL.";
+  setAccountPanel("offline", "Можно создать Ray ID на этом устройстве.");
+  setAuthStatus("Серверный вход выключен. Работает Ray ID.");
+  if (authModeNote) authModeNote.textContent = "Ray ID сохранится на этом устройстве.";
 };
 
 const showAuth = (mode = authSession ? "login" : authMode) => {
@@ -372,8 +522,8 @@ const checkGoogleProvider = async () => {
 
 const initAuth = async () => {
   if (!supabaseConfigured()) {
-    setAccountPanel("offline");
-    setAuthStatus("Вход пока не подключён.");
+    setAuthServerOffline();
+    await restoreLocalSession();
     return;
   }
 
@@ -385,7 +535,10 @@ const initAuth = async () => {
     },
   });
   await checkGoogleProvider();
-  if (authServerReady === false) return;
+  if (authServerReady === false) {
+    await restoreLocalSession();
+    return;
+  }
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "PASSWORD_RECOVERY") {
@@ -400,6 +553,7 @@ const initAuth = async () => {
     await applyAuthSession(data.session);
   } catch {
     setAuthServerOffline();
+    await restoreLocalSession();
   }
 };
 
@@ -433,10 +587,14 @@ const applyAuthSession = async (session) => {
   if (authName && !authName.value.trim()) authName.value = name;
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   clearAuthSecrets();
-  setAccountPanel("signed-in", email);
+  const accountDetail = session?.local ? `${email} · Ray ID на этом устройстве` : email;
+  setAccountPanel("signed-in", accountDetail);
   setAuthStatus(`Вошла: ${email}`);
   if (window.location.hash.includes("access_token") || window.location.search.includes("code=")) {
     window.history.replaceState({}, document.title, canonicalAppUrl());
+  }
+  if (session?.local) {
+    rememberSetting("session_id", `auth-${user.id}`);
   }
   await syncProfile();
   await checkTelegramLink();
@@ -465,6 +623,10 @@ const requireAuthClient = (action = "Вход") => {
 };
 
 const signInGoogle = async () => {
+  if (localAuthAvailable()) {
+    setAuthStatus("Google включим после живого Supabase.");
+    return;
+  }
   if (!requireAuthClient()) return;
   if (googleAuthEnabled === false) {
     setAuthStatus("Google ещё не включён.");
@@ -498,6 +660,19 @@ const signInEmail = async () => {
     setAuthStatus("Нужен пароль.");
     return;
   }
+  if (localAuthAvailable()) {
+    setAuthStatus("Вхожу...");
+    if (emailLogin) emailLogin.disabled = true;
+    try {
+      const session = await signInLocalAccount(email, password);
+      await applyAuthSession(session);
+    } catch (error) {
+      setAuthStatus(friendlyAuthError(error));
+    } finally {
+      if (emailLogin) emailLogin.disabled = false;
+    }
+    return;
+  }
   if (!requireAuthClient("Вход")) return;
   setAuthStatus("Проверяю...");
   if (emailLogin) emailLogin.disabled = true;
@@ -511,6 +686,16 @@ const signInEmail = async () => {
     if (emailLogin) emailLogin.disabled = false;
   }
   if (error) {
+    if (authNetworkFailed(error)) {
+      setAuthServerOffline();
+      try {
+        const session = await signInLocalAccount(email, password);
+        await applyAuthSession(session);
+      } catch (localError) {
+        setAuthStatus(friendlyAuthError(localError));
+      }
+      return;
+    }
     setAuthStatus(friendlyAuthError(error));
     return;
   }
@@ -537,6 +722,19 @@ const signUpEmail = async () => {
   }
 
   if (currentUser) {
+    if (authSession?.local) {
+      setAuthStatus("Сохраняю...");
+      if (emailSignup) emailSignup.disabled = true;
+      try {
+        const session = await updateLocalAccountPassword({ user: currentUser, name, password });
+        await applyAuthSession(session);
+      } catch (error) {
+        setAuthStatus(friendlyAuthError(error));
+      } finally {
+        if (emailSignup) emailSignup.disabled = false;
+      }
+      return;
+    }
     if (!requireAuthClient("Пароль")) return;
     setAuthStatus("Сохраняю...");
     let error = null;
@@ -562,6 +760,24 @@ const signUpEmail = async () => {
     return;
   }
 
+  if (localAuthAvailable()) {
+    setAuthStatus("Создаю...");
+    if (emailSignup) emailSignup.disabled = true;
+    try {
+      const session = await createLocalAccount({ name, email, password });
+      await applyAuthSession(session);
+    } catch (error) {
+      if (String(error?.message || error).includes("local_account_exists")) {
+        setAuthMode("login", { keepStatus: true });
+        if (authEmail) authEmail.value = email;
+      }
+      setAuthStatus(friendlyAuthError(error));
+    } finally {
+      if (emailSignup) emailSignup.disabled = false;
+    }
+    return;
+  }
+
   if (!requireAuthClient("Регистрация")) return;
   setAuthStatus("Создаю...");
   if (emailSignup) emailSignup.disabled = true;
@@ -582,6 +798,20 @@ const signUpEmail = async () => {
     if (emailSignup) emailSignup.disabled = false;
   }
   if (error) {
+    if (authNetworkFailed(error)) {
+      setAuthServerOffline();
+      try {
+        const session = await createLocalAccount({ name, email, password });
+        await applyAuthSession(session);
+      } catch (localError) {
+        if (String(localError?.message || localError).includes("local_account_exists")) {
+          setAuthMode("login", { keepStatus: true });
+          if (authEmail) authEmail.value = email;
+        }
+        setAuthStatus(friendlyAuthError(localError));
+      }
+      return;
+    }
     setAuthStatus(friendlyAuthError(error));
     return;
   }
@@ -612,6 +842,10 @@ const sendEmailOtp = async () => {
   const email = getAuthEmail();
   if (!isValidEmail(email)) {
     setAuthStatus("Нужен email.");
+    return;
+  }
+  if (localAuthAvailable()) {
+    setAuthStatus("Email-код включим после живого Supabase. Сейчас работает пароль.");
     return;
   }
   if (!requireAuthClient("Код")) return;
@@ -649,6 +883,10 @@ const verifyEmailOtp = async () => {
     setAuthStatus("Нужно 6 цифр.");
     return;
   }
+  if (localAuthAvailable()) {
+    setAuthStatus("Код включим после живого Supabase.");
+    return;
+  }
   if (!requireAuthClient("Код")) return;
   setAuthStatus("Проверяю...");
   if (verifyOtp) verifyOtp.disabled = true;
@@ -682,6 +920,10 @@ const requestPasswordReset = async () => {
     setAuthStatus("Нужен email.");
     return;
   }
+  if (localAuthAvailable()) {
+    setAuthStatus("Сброс пароля включим после живого Supabase. Сейчас создай новый Ray ID.");
+    return;
+  }
   if (!requireAuthClient("Пароль")) return;
   setAuthStatus("Отправляю...");
   if (resetPassword) resetPassword.disabled = true;
@@ -703,13 +945,15 @@ const requestPasswordReset = async () => {
 };
 
 const signOut = async () => {
-  if (!requireAuthClient()) return;
-  try {
-    await supabaseClient.auth.signOut();
-  } catch {
-    // Local cleanup is still useful if the remote sign-out request fails.
+  if (supabaseClient && !authSession?.local) {
+    try {
+      await supabaseClient.auth.signOut();
+    } catch {
+      // Local cleanup is still useful if the remote sign-out request fails.
+    }
   }
   authSession = null;
+  clearLocalSession();
   localStorage.removeItem("ray_account_email");
   localStorage.removeItem("ray_account_user_id");
   localStorage.removeItem("ray_account_state");
@@ -731,6 +975,7 @@ const resetAuthForTesting = async () => {
     "ray_onboarding_step",
     "ray_privacy_seen",
     "ray_session_id",
+    LOCAL_AUTH_SESSION_KEY,
     "ray_profile_name",
     "ray_purposes",
   ].forEach((key) => localStorage.removeItem(key));
