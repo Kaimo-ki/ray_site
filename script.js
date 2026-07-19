@@ -47,6 +47,7 @@ const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
 const closeAuth = document.getElementById("closeAuth");
 const googleLogin = document.getElementById("googleLogin");
+const googleLoginLabel = googleLogin?.querySelector("[data-auth-google-label]");
 const telegramLogin = document.getElementById("telegramLogin");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
@@ -64,6 +65,7 @@ const authOtpCode = document.getElementById("authOtpCode");
 const authModeNote = document.getElementById("authModeNote");
 const authModeButtons = [...document.querySelectorAll("[data-auth-mode]")];
 const authModeBlocks = [...document.querySelectorAll("[data-auth-for]")];
+const authLoggedInBlocks = [...document.querySelectorAll("[data-auth-logged-in]")];
 const appShell = document.querySelector(".app-shell");
 
 let companionMoveTimer = null;
@@ -148,24 +150,24 @@ const pendingAccountMessage = () => {
   if (readSetting("account_state") !== "pending_email" && !readSetting("pending_email")) return "";
   const email = readSetting("pending_email") || readSetting("account_email") || "";
   if (!email) return "";
-  return `Аккаунт ${email} создан. Теперь подтверди email по письму, потом вернись и нажми “Войти”. Сайт можно пройти дальше.`;
+  return `Проверь письмо: ${email}. Потом войди.`;
 };
 
 const authModeCopy = {
   login: {
-    title: "Войти в Рэй",
-    note: "Если аккаунт уже есть, введи email и пароль.",
-    status: "Введи email и пароль или войди через Google.",
+    title: "Вход",
+    note: "Email + пароль.",
+    status: "Выбери способ.",
   },
   signup: {
-    title: "Создать аккаунт",
-    note: "Email, пароль и повтор пароля. После создания я сразу покажу, что произошло.",
-    status: "Заполни email, пароль и повтор пароля.",
+    title: "Новый профиль",
+    note: "Email + новый пароль.",
+    status: "Заполни поля.",
   },
   otp: {
-    title: "Войти по коду",
-    note: "Это код на email. Если вместо цифр придёт ссылка, просто открой её.",
-    status: "Введи email, получи письмо и затем введи код.",
+    title: "Код",
+    note: "Код из письма.",
+    status: "Код.",
   },
 };
 
@@ -180,6 +182,7 @@ const clearAuthSecrets = () => {
 
 const setAuthMode = (mode, options = {}) => {
   authMode = authModeCopy[mode] ? mode : "login";
+  if (authPanel) authPanel.dataset.authMode = authMode;
   authModeButtons.forEach((button) => {
     const isActive = button.dataset.authMode === authMode;
     button.classList.toggle("active", isActive);
@@ -197,6 +200,12 @@ const setAuthMode = (mode, options = {}) => {
   if (!options.keepStatus) setAuthStatus(authModeCopy[authMode].status);
 };
 
+const setGoogleLoginText = (text) => {
+  if (!googleLogin) return;
+  if (googleLoginLabel) googleLoginLabel.textContent = text;
+  else googleLogin.textContent = text;
+};
+
 const syncBackgroundInteractivity = () => {
   const overlayIsOpen = Boolean(
     (onboarding?.classList.contains("show") && !onboarding?.classList.contains("auth-paused")) ||
@@ -210,17 +219,17 @@ const syncBackgroundInteractivity = () => {
 
 const friendlyAuthError = (error) => {
   const message = String(error?.message || error || "").toLowerCase();
-  if (!message) return "Не получилось войти. Попробуй ещё раз.";
-  if (message.includes("invalid login credentials")) return "Неверный email или пароль. Если аккаунта ещё нет, открой вкладку “Создать”.";
-  if (message.includes("email not confirmed")) return "Email ещё не подтверждён. Открой письмо от Supabase, подтверди аккаунт, потом вернись и нажми “Войти”.";
-  if (message.includes("rate limit")) return "Supabase временно ограничил письма на бесплатном тарифе. Попробуй позже или войди через Google.";
-  if (message.includes("email provider is disabled")) return "В Supabase выключен вход по email. Включи Authentication -> Providers -> Email.";
-  if (message.includes("signup is disabled")) return "В Supabase выключена регистрация. Включи регистрацию в Authentication.";
-  if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть. Открой вкладку “Войти” и введи пароль.";
-  if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google-вход ещё не включён в Supabase. Пока используй email и пароль.";
-  if (message.includes("redirect")) return "Google не принял адрес возврата. В Supabase нужно добавить https://kaimo-ki.github.io/ray_site/ в Redirect URLs.";
-  if (message.includes("weak password") || message.includes("password")) return "Пароль слишком простой или короткий. Сделай минимум 8 символов, лучше с цифрой.";
-  return error?.message || "Не получилось войти. Попробуй ещё раз.";
+  if (!message) return "Не вышло. Ещё раз.";
+  if (message.includes("invalid login credentials")) return "Email или пароль не тот.";
+  if (message.includes("email not confirmed")) return "Подтверди email.";
+  if (message.includes("rate limit")) return "Лимит писем. Позже или Google.";
+  if (message.includes("email provider is disabled")) return "Email-вход выключен.";
+  if (message.includes("signup is disabled")) return "Регистрация выключена.";
+  if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть.";
+  if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google ещё не включён.";
+  if (message.includes("redirect")) return "Google redirect не настроен.";
+  if (message.includes("weak password") || message.includes("password")) return "Пароль 8+ символов.";
+  return "Не вышло. Ещё раз.";
 };
 
 const showAuth = (mode = authSession ? "login" : authMode) => {
@@ -261,10 +270,10 @@ const advanceAfterAccess = (message) => {
 const updateGoogleButton = () => {
   if (!googleLogin) return;
   if (googleAuthEnabled === false) {
-    googleLogin.textContent = "Google пока не подключён";
+    setGoogleLoginText("Google выкл.");
     googleLogin.classList.add("is-muted");
   } else {
-    googleLogin.textContent = "Войти через Google";
+    setGoogleLoginText("Google");
     googleLogin.classList.remove("is-muted");
   }
 };
@@ -287,7 +296,7 @@ const checkGoogleProvider = async () => {
 
 const initAuth = async () => {
   if (!supabaseConfigured()) {
-    setAuthStatus("Вход через Google/email готов в коде. Осталось подключить Supabase URL и anon key.");
+    setAuthStatus("Вход пока не подключён.");
     return;
   }
 
@@ -314,6 +323,9 @@ const initAuth = async () => {
 
 const applyAuthSession = async (session) => {
   authSession = session || null;
+  authLoggedInBlocks.forEach((block) => {
+    block.hidden = !authSession;
+  });
   const user = session?.user;
   if (!user) {
     const pendingMessage = pendingAccountMessage();
@@ -338,7 +350,7 @@ const applyAuthSession = async (session) => {
   clearAuthSecrets();
   await syncProfile();
   await checkTelegramLink();
-  advanceAfterAccess(`Вход выполнен: ${email}. Продолжаем настройку.`);
+  advanceAfterAccess(`Вошла: ${email}`);
 };
 
 const handlePasswordRecovery = (session) => {
@@ -346,12 +358,12 @@ const handlePasswordRecovery = (session) => {
   const user = session?.user;
   if (user?.email && authEmail) authEmail.value = user.email;
   showAuth("signup");
-  setAuthStatus("Ссылка восстановления принята. Введи новый пароль два раза и нажми “Создать аккаунт” — я сохраню его для этого профиля.");
+  setAuthStatus("Новый пароль.");
 };
 
 const requireAuthClient = () => {
   if (!supabaseClient) {
-    setAuthStatus("Supabase ещё не подключён. Нужно добавить SUPABASE_URL и SUPABASE_ANON_KEY в config.js.");
+    setAuthStatus("Вход пока не подключён.");
     return false;
   }
   return true;
@@ -360,7 +372,7 @@ const requireAuthClient = () => {
 const signInGoogle = async () => {
   if (!requireAuthClient()) return;
   if (googleAuthEnabled === false) {
-    setAuthStatus("Google-вход ещё не включён в Supabase. Включи Authentication -> Providers -> Google, потом кнопка заработает.");
+    setAuthStatus("Google ещё не включён.");
     return;
   }
   setAuthStatus("Открываю Google...");
@@ -380,14 +392,14 @@ const signInEmail = async () => {
   const email = getAuthEmail();
   const password = getAuthPassword();
   if (!isValidEmail(email)) {
-    setAuthStatus("Введи нормальный email, например name@gmail.com.");
+    setAuthStatus("Нужен email.");
     return;
   }
   if (!password) {
-    setAuthStatus("Введи пароль от этого аккаунта.");
+    setAuthStatus("Нужен пароль.");
     return;
   }
-  setAuthStatus("Проверяю аккаунт...");
+  setAuthStatus("Проверяю...");
   if (emailLogin) emailLogin.disabled = true;
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (emailLogin) emailLogin.disabled = false;
@@ -396,7 +408,7 @@ const signInEmail = async () => {
     return;
   }
   if (!data.session) {
-    setAuthStatus("Supabase не вернул сессию. Если email ещё не подтверждён, открой письмо и попробуй снова.");
+    setAuthStatus("Подтверди email.");
     return;
   }
   await applyAuthSession(data.session);
@@ -410,16 +422,16 @@ const signUpEmail = async () => {
   const password = getAuthPassword();
   const confirmPassword = authPasswordConfirm?.value || "";
   if (password.length < 8) {
-    setAuthStatus("Придумай пароль минимум из 8 символов.");
+    setAuthStatus("Пароль 8+ символов.");
     return;
   }
   if (password !== confirmPassword) {
-    setAuthStatus("Пароли не совпадают. Введи один и тот же пароль два раза.");
+    setAuthStatus("Пароли разные.");
     return;
   }
 
   if (currentUser) {
-    setAuthStatus("Сохраняю пароль для текущего аккаунта...");
+    setAuthStatus("Сохраняю...");
     const { error } = await supabaseClient.auth.updateUser({
       password,
       data: { name: name || currentUser.user_metadata?.name || currentUser.email },
@@ -429,16 +441,16 @@ const signUpEmail = async () => {
       return;
     }
     clearAuthSecrets();
-    advanceAfterAccess("Пароль сохранён. Теперь можно входить и через Google, и через email + пароль.");
+    advanceAfterAccess("Пароль сохранён.");
     return;
   }
 
   if (!isValidEmail(email)) {
-    setAuthStatus("Для регистрации нужен нормальный email, например name@gmail.com.");
+    setAuthStatus("Нужен email.");
     return;
   }
 
-  setAuthStatus("Создаю аккаунт...");
+  setAuthStatus("Создаю...");
   if (emailSignup) emailSignup.disabled = true;
   const { data, error } = await supabaseClient.auth.signUp({
     email,
@@ -461,17 +473,20 @@ const signUpEmail = async () => {
   rememberSetting("pending_email", email);
   setAccountState("pending_email", email);
   setAuthMode("login", { keepStatus: true });
-  advanceAfterAccess(`Аккаунт ${email} создан. Нужно подтвердить email по письму, потом войти с этим паролем. Сайт можно пройти дальше.`);
+  if (authEmail) authEmail.value = email;
+  const message = `Письмо отправлено: ${email}`;
+  setAuthStatus(message);
+  setOnboardingNotice(message);
 };
 
 const sendEmailOtp = async () => {
   if (!requireAuthClient()) return;
   const email = getAuthEmail();
   if (!isValidEmail(email)) {
-    setAuthStatus("Введи email, куда отправить код.");
+    setAuthStatus("Нужен email.");
     return;
   }
-  setAuthStatus("Отправляю письмо...");
+  setAuthStatus("Отправляю...");
   if (emailOtp) emailOtp.disabled = true;
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
@@ -485,7 +500,7 @@ const sendEmailOtp = async () => {
     setAuthStatus(friendlyAuthError(error));
     return;
   }
-  setAuthStatus("Письмо отправлено. Если там 6 цифр — введи их ниже. Если там ссылка — просто открой ссылку.");
+  setAuthStatus("Код отправлен.");
 };
 
 const verifyEmailOtp = async () => {
@@ -493,14 +508,14 @@ const verifyEmailOtp = async () => {
   const email = getAuthEmail();
   const token = authOtpCode?.value.trim().replace(/\s+/g, "") || "";
   if (!isValidEmail(email)) {
-    setAuthStatus("Введи email, на который пришёл код.");
+    setAuthStatus("Нужен email.");
     return;
   }
   if (!/^\d{6}$/.test(token)) {
-    setAuthStatus("Введи 6 цифр из письма.");
+    setAuthStatus("Нужно 6 цифр.");
     return;
   }
-  setAuthStatus("Проверяю код...");
+  setAuthStatus("Проверяю...");
   if (verifyOtp) verifyOtp.disabled = true;
   const { data, error } = await supabaseClient.auth.verifyOtp({
     email,
@@ -513,7 +528,7 @@ const verifyEmailOtp = async () => {
     return;
   }
   if (!data.session) {
-    setAuthStatus("Код принят, но Supabase не вернул сессию. Открой ссылку из письма или попробуй Google.");
+    setAuthStatus("Открой ссылку письма.");
     return;
   }
   await applyAuthSession(data.session);
@@ -523,10 +538,10 @@ const requestPasswordReset = async () => {
   if (!requireAuthClient()) return;
   const email = getAuthEmail();
   if (!isValidEmail(email)) {
-    setAuthStatus("Введи email аккаунта, чтобы отправить восстановление пароля.");
+    setAuthStatus("Нужен email.");
     return;
   }
-  setAuthStatus("Отправляю письмо для восстановления пароля...");
+  setAuthStatus("Отправляю...");
   if (resetPassword) resetPassword.disabled = true;
   const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
     redirectTo: canonicalAppUrl(),
@@ -536,7 +551,7 @@ const requestPasswordReset = async () => {
     setAuthStatus(friendlyAuthError(error));
     return;
   }
-  setAuthStatus("Письмо отправлено. Открой ссылку, вернись на сайт и задай новый пароль во вкладке “Создать”.");
+  setAuthStatus("Письмо отправлено.");
 };
 
 const signOut = async () => {
@@ -546,7 +561,7 @@ const signOut = async () => {
   localStorage.removeItem("ray_account_user_id");
   localStorage.removeItem("ray_account_state");
   localStorage.removeItem("ray_pending_email");
-  setAuthStatus("Вышли из аккаунта. Локальная сессия сайта осталась на этом устройстве.");
+  setAuthStatus("Вышла.");
 };
 
 const resetAuthForTesting = async () => {
@@ -569,7 +584,7 @@ const resetAuthForTesting = async () => {
   showOnboardingStep(0);
   hideAuth();
   syncBackgroundInteractivity();
-  setAuthStatus("Тестовый сброс готов. Теперь можно проверить вход как новый пользователь.");
+  setAuthStatus("Сброшено.");
 };
 
 async function checkTelegramLink() {
@@ -585,15 +600,15 @@ async function checkTelegramLink() {
     const data = await response.json();
     if (data.linked) {
       rememberSetting("telegram_linked", "yes");
-      setTelegramLinkStatus("Telegram связан. Web и бот используют одну память.");
+      setTelegramLinkStatus("Telegram связан.");
       return true;
     } else {
       localStorage.removeItem("ray_telegram_linked");
-      setTelegramLinkStatus("Telegram пока не связан. Нажми кнопку и отправь код боту.");
+      setTelegramLinkStatus("Telegram не связан.");
       return false;
     }
   } catch (error) {
-    setTelegramLinkStatus("Связку проверю после подключения API.");
+    setTelegramLinkStatus("API не отвечает.");
     return false;
   }
 }
@@ -606,10 +621,10 @@ const pollTelegramLink = () => {
     const linked = await checkTelegramLink();
     if (linked) {
       window.clearInterval(telegramPollTimer);
-      advanceAfterAccess("Telegram связан. Можно продолжать.");
+      advanceAfterAccess("Telegram связан.");
     } else if (attempts >= 24) {
       window.clearInterval(telegramPollTimer);
-      setTelegramLinkStatus("Код ещё не подтверждён. Если уже отправила его боту, нажми “Связать Telegram” ещё раз.");
+      setTelegramLinkStatus("Код не подтверждён.");
     }
   }, 3000);
 };
@@ -886,7 +901,7 @@ resetLocalAuth?.addEventListener("click", resetAuthForTesting);
 nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => {
     if (onboardingStep === 0 && supabaseClient && !authSession) {
-      setOnboardingNotice("Можно продолжить сейчас. Аккаунт подключишь позже кнопкой “Аккаунт”.");
+      setOnboardingNotice("Ок. Вход можно позже.");
     }
     showOnboardingStep(onboardingStep + 1);
   });
@@ -957,13 +972,13 @@ saveApiUrl?.addEventListener("click", async () => {
 const startTelegramLink = async (button, options = {}) => {
   const apiUrl = getApiUrl();
   if (!apiUrl) {
-    setTelegramLinkStatus("Сначала подключи Ray API.");
+    setTelegramLinkStatus("API не подключён.");
     return;
   }
 
   if (button) button.disabled = true;
-  if (options.autoAdvance) setAuthStatus("Готовлю вход через Telegram...");
-  setTelegramLinkStatus("Готовлю код...");
+  if (options.autoAdvance) setAuthStatus("Telegram...");
+  setTelegramLinkStatus("Код...");
   try {
     const response = await fetch(`${apiUrl}/link/start`, {
       method: "POST",
@@ -973,17 +988,17 @@ const startTelegramLink = async (button, options = {}) => {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     if (data.linked) {
-      setTelegramLinkStatus("Telegram уже связан. Web и бот используют одну память.");
-      if (options.autoAdvance) advanceAfterAccess("Telegram уже связан. Можно продолжать.");
+      setTelegramLinkStatus("Telegram уже связан.");
+      if (options.autoAdvance) advanceAfterAccess("Telegram связан.");
       return;
     }
 
     setTelegramLinkStatus(
-      `Код готов: <code>/link ${String(data.code).replace(/[<>&"]/g, "")}</code>. Отправь его боту: <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">открыть Telegram</a>. Я проверю связку сам.`
+      `<code>/link ${String(data.code).replace(/[<>&"]/g, "")}</code> -> <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">бот</a>`
     );
     if (options.autoAdvance) pollTelegramLink();
   } catch (error) {
-    setTelegramLinkStatus("Не получилось создать код. Проверь Railway API и попробуй ещё раз.");
+    setTelegramLinkStatus("Код не создался.");
   } finally {
     if (button) button.disabled = false;
   }

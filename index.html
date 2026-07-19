@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=27">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
@@ -27,24 +27,24 @@
       <p class="onboarding-notice" id="onboardingNotice" hidden></p>
 
       <article class="onboarding-step active" data-step="0">
-        <p class="eyebrow">Аккаунт</p>
+        <p class="eyebrow">Старт</p>
         <h1>Привет. Я Рэй.</h1>
-        <p>Сначала войди или создай аккаунт. Так память, Telegram и установленное приложение будут относиться к одному человеку.</p>
+        <p>Войди, чтобы память была общей. Можно продолжить и без входа.</p>
         <label class="field-label">
-          Имя или email
-          <input id="onboardingName" type="text" autocomplete="name" placeholder="Например: akmola@help.com">
+          Имя
+          <input id="onboardingName" type="text" autocomplete="name" placeholder="Как звать">
         </label>
         <div class="auth-box">
-          <strong>Аккаунт Рэя</strong>
-          <p id="authStatus">Войди через Google или создай email + пароль.</p>
+          <strong>Аккаунт</strong>
+          <p id="authStatus">Гость</p>
           <button class="button ghost" type="button" id="openAuthOnboarding">
             <i data-lucide="user-round"></i>
-            Вход / регистрация
+            Войти
           </button>
         </div>
         <button class="button primary" type="button" data-next-step>
           <i data-lucide="arrow-right"></i>
-          Продолжить
+          Начать
         </button>
       </article>
 
@@ -501,77 +501,87 @@
 
   <div class="auth-backdrop" id="authPanel" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="auth-card">
-      <p class="eyebrow">Аккаунт Рэя</p>
-      <h2 id="authTitle">Вход или регистрация</h2>
-      <p id="authStatusModal">Войди через Google или создай пароль. После входа можно связать Telegram с этой же памятью.</p>
+      <div class="auth-card-head">
+        <img class="auth-avatar" src="assets/ray-avatar.png" alt="">
+        <div>
+          <p class="eyebrow">Ray ID</p>
+          <h2 id="authTitle">Вход</h2>
+        </div>
+      </div>
+      <p class="auth-status-line" id="authStatusModal">Выбери способ.</p>
 
       <div class="auth-tabs" role="tablist" aria-label="Способ входа">
         <button class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
         <button class="auth-tab" type="button" data-auth-mode="signup">Создать</button>
-        <button class="auth-tab" type="button" data-auth-mode="otp">Email-код</button>
+        <button class="auth-tab" type="button" data-auth-mode="otp">Код</button>
       </div>
 
-      <button class="button primary full-button" type="button" id="googleLogin">
-        <i data-lucide="chrome"></i>
-        Войти через Google
-      </button>
-      <button class="button ghost full-button" type="button" id="telegramLogin">
-        <i data-lucide="send"></i>
-        Войти через Telegram
-      </button>
-      <p class="auth-mode-note" id="authModeNote">Если аккаунт уже есть, введи email и пароль.</p>
+      <div class="auth-provider-grid" data-auth-for="login signup">
+        <button class="button primary full-button" type="button" id="googleLogin">
+          <i data-lucide="chrome"></i>
+          <span data-auth-google-label>Google</span>
+        </button>
+      </div>
+      <p class="auth-mode-note" id="authModeNote">Email + пароль.</p>
 
       <label class="field-label compact-field" data-auth-for="signup">
         Имя
-        <input id="authName" type="text" autocomplete="name" placeholder="Как к тебе обращаться">
+        <input id="authName" type="text" autocomplete="name" placeholder="Имя">
       </label>
       <label class="field-label compact-field" data-auth-for="login signup otp">
         Email
-        <input id="authEmail" type="email" autocomplete="email" placeholder="email">
+        <input id="authEmail" type="email" autocomplete="email" placeholder="you@mail.com">
       </label>
       <label class="field-label compact-field" data-auth-for="login signup">
         Пароль
-        <input id="authPassword" type="password" autocomplete="current-password" placeholder="минимум 8 символов">
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="8+ символов">
       </label>
       <label class="field-label compact-field" data-auth-for="signup">
-        Повтори пароль
-        <input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="ещё раз пароль">
+        Повтор
+        <input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="ещё раз">
       </label>
 
       <div class="auth-actions" data-auth-for="login">
-        <button class="button secondary" type="button" id="emailLogin">Войти с паролем</button>
-        <button class="button ghost" type="button" id="resetPassword">Забыли пароль?</button>
+        <button class="button secondary" type="button" id="emailLogin">Войти</button>
+        <button class="button ghost" type="button" id="resetPassword">Забыла?</button>
       </div>
       <div class="auth-actions" data-auth-for="signup">
-        <button class="button secondary" type="button" id="emailSignup">Создать аккаунт</button>
+        <button class="button secondary" type="button" id="emailSignup">Создать</button>
       </div>
       <div class="otp-box" data-auth-for="otp">
-        <button class="button secondary full-button" type="button" id="emailOtp">Получить код на email</button>
+        <div class="auth-code-choice">
+          <button class="button secondary full-button" type="button" id="emailOtp">Email-код</button>
+          <button class="button ghost full-button" type="button" id="telegramLogin">
+            <i data-lucide="send"></i>
+            Telegram-код
+          </button>
+        </div>
         <div class="auth-grid">
-          <input id="authOtpCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр из письма">
-          <button class="button ghost" type="button" id="verifyOtp">Войти по коду</button>
+          <input id="authOtpCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
+          <button class="button ghost" type="button" id="verifyOtp">ОК</button>
         </div>
       </div>
 
-      <div class="link-box">
+      <div class="link-box" data-auth-for="otp">
         <strong>Telegram</strong>
-        <p id="authTelegramLinkStatus">Нажми “Войти через Telegram”. Сайт покажет код, а ты отправишь его боту.</p>
+        <p id="authTelegramLinkStatus">Нажми Telegram, отправь код боту.</p>
         <div class="auth-actions">
-          <a class="button ghost" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">Открыть бота</a>
+          <a class="button ghost" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">Открыть</a>
         </div>
       </div>
-      <div class="auth-actions">
+      <div class="auth-actions" data-auth-logged-in hidden>
         <button class="button ghost" type="button" id="authLogout">Выйти</button>
       </div>
-      <button class="button ghost full-button" type="button" id="resetLocalAuth">Проверить как новый пользователь</button>
-      <p class="phone-note">SMS-вход пока не включаем: он требует отдельного SMS-провайдера и бюджета.</p>
-      <button class="button ghost full-button" type="button" id="closeAuth">Готово</button>
+      <div class="auth-footer-actions">
+        <button class="button ghost" type="button" id="resetLocalAuth">Сброс</button>
+        <button class="button ghost" type="button" id="closeAuth">Закрыть</button>
+      </div>
     </div>
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=25"></script>
+  <script src="config.js?v=27"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=25"></script>
+  <script src="script.js?v=27"></script>
 </body>
 </html>
