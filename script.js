@@ -41,6 +41,7 @@ const authStatus = document.getElementById("authStatus");
 const authStatusSettings = document.getElementById("authStatusSettings");
 const authStatusModal = document.getElementById("authStatusModal");
 const authPanel = document.getElementById("authPanel");
+const authTitle = document.getElementById("authTitle");
 const openAuth = document.getElementById("openAuth");
 const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
@@ -48,12 +49,20 @@ const closeAuth = document.getElementById("closeAuth");
 const googleLogin = document.getElementById("googleLogin");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
+const emailOtp = document.getElementById("emailOtp");
+const verifyOtp = document.getElementById("verifyOtp");
+const resetPassword = document.getElementById("resetPassword");
 const authLogout = document.getElementById("authLogout");
 const authLogoutSettings = document.getElementById("authLogoutSettings");
 const resetLocalAuth = document.getElementById("resetLocalAuth");
 const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
+const authPasswordConfirm = document.getElementById("authPasswordConfirm");
+const authOtpCode = document.getElementById("authOtpCode");
+const authModeNote = document.getElementById("authModeNote");
+const authModeButtons = [...document.querySelectorAll("[data-auth-mode]")];
+const authModeBlocks = [...document.querySelectorAll("[data-auth-for]")];
 const appShell = document.querySelector(".app-shell");
 
 let companionMoveTimer = null;
@@ -65,6 +74,7 @@ let supabaseClient = null;
 let googleAuthEnabled = null;
 let authSession = null;
 let authPausedOnboarding = false;
+let authMode = "login";
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -115,6 +125,52 @@ const setAuthStatus = (text) => {
   if (authStatusModal) authStatusModal.textContent = text;
 };
 
+const authModeCopy = {
+  login: {
+    title: "Войти в Рэй",
+    note: "Если аккаунт уже есть, введи email и пароль.",
+    status: "Введи email и пароль или войди через Google.",
+  },
+  signup: {
+    title: "Создать аккаунт",
+    note: "Придумай пароль от 8 символов. Если Supabase просит подтверждение, сначала открой письмо.",
+    status: "Заполни email, пароль и повтор пароля.",
+  },
+  otp: {
+    title: "Войти по коду",
+    note: "Код работает только если в Supabase email-шаблон отправляет {{ .Token }}. Если придёт ссылка, просто нажми её.",
+    status: "Введи email, получи письмо и затем введи код.",
+  },
+};
+
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const getAuthEmail = () => authEmail?.value.trim().toLowerCase() || "";
+const getAuthPassword = () => authPassword?.value || "";
+const clearAuthSecrets = () => {
+  if (authPassword) authPassword.value = "";
+  if (authPasswordConfirm) authPasswordConfirm.value = "";
+  if (authOtpCode) authOtpCode.value = "";
+};
+
+const setAuthMode = (mode, options = {}) => {
+  authMode = authModeCopy[mode] ? mode : "login";
+  authModeButtons.forEach((button) => {
+    const isActive = button.dataset.authMode === authMode;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  authModeBlocks.forEach((block) => {
+    const modes = (block.dataset.authFor || "").split(/\s+/);
+    block.hidden = !modes.includes(authMode);
+  });
+  if (authTitle) authTitle.textContent = authModeCopy[authMode].title;
+  if (authModeNote) authModeNote.textContent = authModeCopy[authMode].note;
+  if (authPassword) {
+    authPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
+  }
+  if (!options.keepStatus) setAuthStatus(authModeCopy[authMode].status);
+};
+
 const syncBackgroundInteractivity = () => {
   const overlayIsOpen = Boolean(
     (onboarding?.classList.contains("show") && !onboarding?.classList.contains("auth-paused")) ||
@@ -129,19 +185,20 @@ const syncBackgroundInteractivity = () => {
 const friendlyAuthError = (error) => {
   const message = String(error?.message || error || "").toLowerCase();
   if (!message) return "Не получилось войти. Попробуй ещё раз.";
-  if (message.includes("invalid login credentials")) return "Неверный email или пароль. Если аккаунта ещё нет, нажми “Зарегистрироваться”.";
-  if (message.includes("email not confirmed")) return "Email ещё не подтверждён. Открой письмо от Supabase и подтверди вход.";
+  if (message.includes("invalid login credentials")) return "Неверный email или пароль. Если аккаунта ещё нет, открой вкладку “Создать”.";
+  if (message.includes("email not confirmed")) return "Email ещё не подтверждён. Открой письмо от Supabase, подтверди аккаунт, потом вернись и нажми “Войти”.";
   if (message.includes("rate limit")) return "Supabase временно ограничил письма на бесплатном тарифе. Попробуй позже или войди через Google.";
   if (message.includes("email provider is disabled")) return "В Supabase выключен вход по email. Включи Authentication -> Providers -> Email.";
   if (message.includes("signup is disabled")) return "В Supabase выключена регистрация. Включи регистрацию в Authentication.";
-  if (message.includes("user already registered")) return "Такой email уже зарегистрирован. Нажми “Войти” или восстановим пароль позже.";
+  if (message.includes("user already registered") || message.includes("already registered")) return "Такой email уже есть. Открой вкладку “Войти” и введи пароль.";
   if (message.includes("provider is not enabled") || message.includes("unsupported provider")) return "Google-вход ещё не включён в Supabase. Пока используй email и пароль.";
   if (message.includes("redirect")) return "Google не принял адрес возврата. В Supabase нужно добавить https://kaimo-ki.github.io/ray_site/ в Redirect URLs.";
-  if (message.includes("password")) return "Проверь пароль: минимум 6 символов.";
+  if (message.includes("weak password") || message.includes("password")) return "Пароль слишком простой или короткий. Сделай минимум 8 символов, лучше с цифрой.";
   return error?.message || "Не получилось войти. Попробуй ещё раз.";
 };
 
-const showAuth = () => {
+const showAuth = (mode = authSession ? "login" : authMode) => {
+  setAuthMode(mode);
   authPausedOnboarding = Boolean(onboarding?.classList.contains("show") && !onboardingDone());
   if (authPausedOnboarding) onboarding?.classList.add("auth-paused");
   authPanel?.classList.add("show");
@@ -196,7 +253,11 @@ const initAuth = async () => {
   const { data } = await supabaseClient.auth.getSession();
   await applyAuthSession(data.session);
 
-  supabaseClient.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      handlePasswordRecovery(session);
+      return;
+    }
     applyAuthSession(session);
   });
 };
@@ -205,7 +266,7 @@ const applyAuthSession = async (session) => {
   authSession = session || null;
   const user = session?.user;
   if (!user) {
-    setAuthStatus("Войди через Google или создай email + пароль.");
+    setAuthStatus(authModeCopy[authMode]?.status || "Войди через Google или создай email + пароль.");
     return;
   }
 
@@ -218,8 +279,17 @@ const applyAuthSession = async (session) => {
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   setAuthStatus(`Вход выполнен: ${email}`);
   hideAuth();
+  clearAuthSecrets();
   await syncProfile();
   await checkTelegramLink();
+};
+
+const handlePasswordRecovery = (session) => {
+  authSession = session || null;
+  const user = session?.user;
+  if (user?.email && authEmail) authEmail.value = user.email;
+  showAuth("signup");
+  setAuthStatus("Ссылка восстановления принята. Введи новый пароль два раза и нажми “Создать аккаунт” — я сохраню его для этого профиля.");
 };
 
 const requireAuthClient = () => {
@@ -250,10 +320,14 @@ const signInGoogle = async () => {
 
 const signInEmail = async () => {
   if (!requireAuthClient()) return;
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
-  if (!email || !password) {
-    setAuthStatus("Введи email и пароль.");
+  const email = getAuthEmail();
+  const password = getAuthPassword();
+  if (!isValidEmail(email)) {
+    setAuthStatus("Введи нормальный email, например name@gmail.com.");
+    return;
+  }
+  if (!password) {
+    setAuthStatus("Введи пароль от этого аккаунта.");
     return;
   }
   setAuthStatus("Проверяю аккаунт...");
@@ -271,10 +345,15 @@ const signUpEmail = async () => {
   if (!requireAuthClient()) return;
   const currentUser = authSession?.user;
   const name = authName?.value.trim() || onboardingName?.value.trim() || "";
-  const email = authEmail.value.trim();
-  const password = authPassword.value;
-  if (password.length < 6) {
-    setAuthStatus("Для пароля нужно минимум 6 символов.");
+  const email = getAuthEmail() || currentUser?.email || "";
+  const password = getAuthPassword();
+  const confirmPassword = authPasswordConfirm?.value || "";
+  if (password.length < 8) {
+    setAuthStatus("Придумай пароль минимум из 8 символов.");
+    return;
+  }
+  if (password !== confirmPassword) {
+    setAuthStatus("Пароли не совпадают. Введи один и тот же пароль два раза.");
     return;
   }
 
@@ -289,13 +368,15 @@ const signUpEmail = async () => {
       return;
     }
     setAuthStatus("Пароль сохранён. Теперь можно входить и через Google, и через email + пароль.");
+    clearAuthSecrets();
     return;
   }
 
-  if (!email) {
-    setAuthStatus("Для создания аккаунта нужен email и пароль от 6 символов.");
+  if (!isValidEmail(email)) {
+    setAuthStatus("Для регистрации нужен нормальный email, например name@gmail.com.");
     return;
   }
+
   setAuthStatus("Создаю аккаунт...");
   if (emailSignup) emailSignup.disabled = true;
   const { data, error } = await supabaseClient.auth.signUp({
@@ -315,7 +396,80 @@ const signUpEmail = async () => {
     await applyAuthSession(data.session);
     return;
   }
-  setAuthStatus("Аккаунт создан. Открой письмо и нажми ссылку подтверждения. Код на сайте вводить не нужно. Потом вернись сюда и нажми “Войти”.");
+  clearAuthSecrets();
+  setAuthMode("login", { keepStatus: true });
+  setAuthStatus("Аккаунт создан. Открой письмо от Supabase и подтверди email. Потом вернись сюда и войди с этим паролем.");
+};
+
+const sendEmailOtp = async () => {
+  if (!requireAuthClient()) return;
+  const email = getAuthEmail();
+  if (!isValidEmail(email)) {
+    setAuthStatus("Введи email, куда отправить код.");
+    return;
+  }
+  setAuthStatus("Отправляю письмо...");
+  if (emailOtp) emailOtp.disabled = true;
+  const { error } = await supabaseClient.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: canonicalAppUrl(),
+      shouldCreateUser: true,
+    },
+  });
+  if (emailOtp) emailOtp.disabled = false;
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  setAuthStatus("Письмо отправлено. Если там 6 цифр — введи их ниже. Если там ссылка — просто открой ссылку.");
+};
+
+const verifyEmailOtp = async () => {
+  if (!requireAuthClient()) return;
+  const email = getAuthEmail();
+  const token = authOtpCode?.value.trim().replace(/\s+/g, "") || "";
+  if (!isValidEmail(email)) {
+    setAuthStatus("Введи email, на который пришёл код.");
+    return;
+  }
+  if (!/^\d{6}$/.test(token)) {
+    setAuthStatus("Введи 6 цифр из письма.");
+    return;
+  }
+  setAuthStatus("Проверяю код...");
+  if (verifyOtp) verifyOtp.disabled = true;
+  const { data, error } = await supabaseClient.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+  if (verifyOtp) verifyOtp.disabled = false;
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  await applyAuthSession(data.session);
+};
+
+const requestPasswordReset = async () => {
+  if (!requireAuthClient()) return;
+  const email = getAuthEmail();
+  if (!isValidEmail(email)) {
+    setAuthStatus("Введи email аккаунта, чтобы отправить восстановление пароля.");
+    return;
+  }
+  setAuthStatus("Отправляю письмо для восстановления пароля...");
+  if (resetPassword) resetPassword.disabled = true;
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: canonicalAppUrl(),
+  });
+  if (resetPassword) resetPassword.disabled = false;
+  if (error) {
+    setAuthStatus(friendlyAuthError(error));
+    return;
+  }
+  setAuthStatus("Письмо отправлено. Открой ссылку, вернись на сайт и задай новый пароль во вкладке “Создать”.");
 };
 
 const signOut = async () => {
@@ -560,6 +714,8 @@ const hideInstall = () => {
 };
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
+setAuthMode("login");
+
 if (readSetting("onboarding_done") === "yes") {
   onboarding.classList.remove("show");
   if (!readSetting("privacy_seen")) showConsent();
@@ -612,20 +768,26 @@ installApp.addEventListener("click", async () => {
 
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
-openAuth?.addEventListener("click", showAuth);
-openAuthOnboarding?.addEventListener("click", showAuth);
-openAuthSettings?.addEventListener("click", showAuth);
+openAuth?.addEventListener("click", () => showAuth("login"));
+openAuthOnboarding?.addEventListener("click", () => showAuth("signup"));
+openAuthSettings?.addEventListener("click", () => showAuth("login"));
 closeAuth?.addEventListener("click", hideAuth);
+authModeButtons.forEach((button) => {
+  button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+});
 googleLogin?.addEventListener("click", signInGoogle);
 emailLogin?.addEventListener("click", signInEmail);
 emailSignup?.addEventListener("click", signUpEmail);
+emailOtp?.addEventListener("click", sendEmailOtp);
+verifyOtp?.addEventListener("click", verifyEmailOtp);
+resetPassword?.addEventListener("click", requestPasswordReset);
 authLogout?.addEventListener("click", signOut);
 authLogoutSettings?.addEventListener("click", signOut);
 resetLocalAuth?.addEventListener("click", resetAuthForTesting);
 nextStepButtons.forEach((button) => {
   button.addEventListener("click", () => {
     if (onboardingStep === 0 && supabaseClient && !authSession) {
-      showAuth();
+      showAuth("signup");
       setAuthStatus("Сначала войди или создай аккаунт, потом продолжим настройку.");
       return;
     }
@@ -635,7 +797,7 @@ nextStepButtons.forEach((button) => {
 
 finishOnboarding.addEventListener("click", async () => {
   if (supabaseClient && !authSession) {
-    showAuth();
+    showAuth("signup");
     setAuthStatus("Сначала войди или создай аккаунт, чтобы память была единой.");
     return;
   }

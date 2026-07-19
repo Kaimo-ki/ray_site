@@ -19,6 +19,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -983,6 +985,47 @@ body.companion-rose { --accent: #d76f91; }
 .auth-card {
   display: grid;
   gap: 14px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.auth-tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.auth-tab.active {
+  color: var(--dark);
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(18, 22, 18, .08);
+}
+
+.auth-mode-note {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--surface-2);
+  line-height: 1.45;
+}
+
+.otp-box {
+  display: grid;
+  gap: 10px;
 }
 
 .auth-grid {

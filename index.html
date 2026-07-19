@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=22">
+  <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
@@ -503,26 +503,51 @@
       <p class="eyebrow">Аккаунт Рэя</p>
       <h2 id="authTitle">Вход или регистрация</h2>
       <p id="authStatusModal">Войди через Google или создай пароль. После входа можно связать Telegram с этой же памятью.</p>
+
+      <div class="auth-tabs" role="tablist" aria-label="Способ входа">
+        <button class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
+        <button class="auth-tab" type="button" data-auth-mode="signup">Создать</button>
+        <button class="auth-tab" type="button" data-auth-mode="otp">Код</button>
+      </div>
+
       <button class="button primary full-button" type="button" id="googleLogin">
         <i data-lucide="chrome"></i>
         Войти через Google
       </button>
-      <label class="field-label compact-field">
+      <p class="auth-mode-note" id="authModeNote">Если аккаунт уже есть, введи email и пароль.</p>
+
+      <label class="field-label compact-field" data-auth-for="signup">
         Имя
         <input id="authName" type="text" autocomplete="name" placeholder="Как к тебе обращаться">
       </label>
-      <label class="field-label compact-field">
+      <label class="field-label compact-field" data-auth-for="login signup otp">
         Email
         <input id="authEmail" type="email" autocomplete="email" placeholder="email">
       </label>
-      <div class="auth-grid">
-        <input id="authPassword" type="password" autocomplete="current-password" placeholder="пароль от 6 символов">
-        <button class="button ghost" type="button" id="emailLogin">Войти</button>
+      <label class="field-label compact-field" data-auth-for="login signup">
+        Пароль
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="минимум 8 символов">
+      </label>
+      <label class="field-label compact-field" data-auth-for="signup">
+        Повтори пароль
+        <input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="ещё раз пароль">
+      </label>
+
+      <div class="auth-actions" data-auth-for="login">
+        <button class="button secondary" type="button" id="emailLogin">Войти с паролем</button>
+        <button class="button ghost" type="button" id="resetPassword">Забыли пароль?</button>
       </div>
-      <div class="auth-actions">
-        <button class="button ghost" type="button" id="emailSignup">Создать / обновить пароль</button>
-        <button class="button ghost" type="button" id="authLogout">Выйти</button>
+      <div class="auth-actions" data-auth-for="signup">
+        <button class="button secondary" type="button" id="emailSignup">Создать аккаунт</button>
       </div>
+      <div class="otp-box" data-auth-for="otp">
+        <button class="button secondary full-button" type="button" id="emailOtp">Получить код на email</button>
+        <div class="auth-grid">
+          <input id="authOtpCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр из письма">
+          <button class="button ghost" type="button" id="verifyOtp">Войти по коду</button>
+        </div>
+      </div>
+
       <div class="link-box">
         <strong>Telegram как второй вход</strong>
         <p id="authTelegramLinkStatus">Сайт покажет код. Отправь его боту, чтобы web и Telegram использовали одну память.</p>
@@ -531,6 +556,9 @@
           <a class="button ghost" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">Открыть бота</a>
         </div>
       </div>
+      <div class="auth-actions">
+        <button class="button ghost" type="button" id="authLogout">Выйти</button>
+      </div>
       <button class="button ghost full-button" type="button" id="resetLocalAuth">Проверить как новый пользователь</button>
       <p class="phone-note">SMS-вход пока не включаем: он требует отдельного SMS-провайдера и бюджета.</p>
       <button class="button ghost full-button" type="button" id="closeAuth">Готово</button>
@@ -538,8 +566,8 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=22"></script>
+  <script src="config.js?v=23"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=22"></script>
+  <script src="script.js?v=23"></script>
 </body>
 </html>
