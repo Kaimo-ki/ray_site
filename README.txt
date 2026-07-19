@@ -29,3 +29,4 @@ The same Telegram bot can open Ray Web through a Web App button.
 Telegram itself does not allow a bot to draw a floating object over the normal chat UI.
 Current bot username: @rey_helper_bot
 For shared memory, create/login to Ray Account on the site, then use the Telegram link code.
+After Telegram is linked, the site can start Telegram login: click "Код" -> "Telegram-код", then send /login code to the bot.

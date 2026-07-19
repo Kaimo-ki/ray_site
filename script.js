@@ -89,6 +89,7 @@ let authSession = null;
 let authPausedOnboarding = false;
 let authMode = "login";
 let telegramPollTimer = null;
+let telegramAuthPollTimer = null;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -211,7 +212,7 @@ const authModeCopy = {
   },
   otp: {
     title: "Код",
-    note: "Email или Telegram.",
+    note: "Telegram-код для входа.",
     status: "Код.",
   },
 };
@@ -1088,6 +1089,7 @@ const requestPasswordReset = async () => {
 };
 
 const signOut = async () => {
+  window.clearInterval(telegramAuthPollTimer);
   const apiToken = getApiAuthToken();
   if (apiToken && apiAuthAvailable()) {
     try {
@@ -1116,6 +1118,7 @@ const signOut = async () => {
 };
 
 const resetAuthForTesting = async () => {
+  window.clearInterval(telegramAuthPollTimer);
   if (supabaseClient) await supabaseClient.auth.signOut();
   [
     "ray_account_email",
@@ -1185,6 +1188,40 @@ const pollTelegramLink = () => {
     } else if (attempts >= 24) {
       window.clearInterval(telegramPollTimer);
       setTelegramLinkStatus("Код не подтверждён.");
+    }
+  }, 3000);
+};
+
+const pollTelegramAuth = (requestToken) => {
+  window.clearInterval(telegramAuthPollTimer);
+  let attempts = 0;
+  telegramAuthPollTimer = window.setInterval(async () => {
+    attempts += 1;
+    try {
+      const data = await apiAuthRequest("/auth/telegram/status", { request_token: requestToken });
+      if (data.status === "confirmed" && data.token) {
+        window.clearInterval(telegramAuthPollTimer);
+        saveApiAuthSession(data);
+        await applyAuthSession(makeApiSession(data));
+        return;
+      }
+      if (data.status === "expired") {
+        window.clearInterval(telegramAuthPollTimer);
+        setAuthStatus("Telegram-код истёк.");
+        setTelegramLinkStatus("Код истёк. Создай новый.");
+        return;
+      }
+      setAuthStatus("Жду подтверждение в Telegram...");
+    } catch {
+      window.clearInterval(telegramAuthPollTimer);
+      setAuthStatus("Telegram-вход сейчас не отвечает.");
+      return;
+    }
+
+    if (attempts >= 40) {
+      window.clearInterval(telegramAuthPollTimer);
+      setAuthStatus("Код не подтвердили.");
+      setTelegramLinkStatus("Код не подтвердили. Можно создать новый.");
     }
   }, 3000);
 };
@@ -1583,7 +1620,35 @@ const startTelegramLink = async (button, options = {}) => {
 };
 
 linkTelegram?.addEventListener("click", () => startTelegramLink(linkTelegram));
-telegramLogin?.addEventListener("click", () => startTelegramLink(telegramLogin, { autoAdvance: true }));
+
+const startTelegramLogin = async (button) => {
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    setAuthStatus("Ray API не подключён.");
+    setTelegramLinkStatus("API не подключён.");
+    return;
+  }
+
+  window.clearInterval(telegramAuthPollTimer);
+  if (button) button.disabled = true;
+  setAuthStatus("Создаю Telegram-код...");
+  setTelegramLinkStatus("Код...");
+  try {
+    const data = await apiAuthRequest("/auth/telegram/start", {});
+    setAuthStatus("Отправь код боту.");
+    setTelegramLinkStatus(
+      `<code>/login ${String(data.code).replace(/[<>&"]/g, "")}</code> -> <a class="inline-link" href="https://t.me/rey_helper_bot" target="_blank" rel="noreferrer">бот</a>`
+    );
+    pollTelegramAuth(data.request_token);
+  } catch {
+    setAuthStatus("Telegram-вход не создался.");
+    setTelegramLinkStatus("Код входа не создался.");
+  } finally {
+    if (button) button.disabled = false;
+  }
+};
+
+telegramLogin?.addEventListener("click", () => startTelegramLogin(telegramLogin));
 
 const applyCompanionColor = (color) => {
   document.body.classList.remove("companion-amber", "companion-blue", "companion-rose");
