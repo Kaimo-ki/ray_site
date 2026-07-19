@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=28">
+  <link rel="stylesheet" href="styles.css?v=29">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
@@ -219,14 +219,17 @@
         </div>
 
         <aside class="status-panel" aria-label="Статус аккаунта">
-          <div class="status-card account-card">
+          <div class="status-card account-card" id="accountCard" data-state="guest">
             <span>Аккаунт</span>
-            <strong id="authStatusSettings">Вход ещё не подключён.</strong>
-            <div class="status-actions">
+            <strong id="authStatusSettings">Гость</strong>
+            <p id="authStatusHint">Войди, чтобы память была общей.</p>
+            <div class="status-actions" data-auth-signed-out>
               <button class="button ghost" type="button" id="openAuthSettings">
                 <i data-lucide="user-round"></i>
                 Войти
               </button>
+            </div>
+            <div class="status-actions" data-auth-signed-in hidden>
               <button class="button ghost" type="button" id="authLogoutSettings">
                 <i data-lucide="log-out"></i>
                 Выйти
@@ -512,45 +515,54 @@
       </div>
       <p class="auth-status-line" id="authStatusModal">Выбери способ.</p>
 
-      <div class="auth-tabs" role="tablist" aria-label="Способ входа">
+      <div class="auth-signed-card" data-auth-signed-in hidden>
+        <strong>Ты вошла</strong>
+        <span id="authSignedInEmail">Аккаунт активен</span>
+        <div class="auth-footer-actions">
+          <button class="button secondary" type="button" id="authContinue">Продолжить</button>
+          <button class="button ghost" type="button" id="authSetPassword">Пароль</button>
+        </div>
+      </div>
+
+      <div class="auth-tabs" role="tablist" aria-label="Способ входа" data-auth-signed-out>
         <button class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
         <button class="auth-tab" type="button" data-auth-mode="signup">Создать</button>
         <button class="auth-tab" type="button" data-auth-mode="otp">Код</button>
       </div>
 
-      <div class="auth-provider-grid" data-auth-for="login signup">
+      <div class="auth-provider-grid" data-auth-for="login signup" data-auth-signed-out>
         <button class="button primary full-button" type="button" id="googleLogin">
           <i data-lucide="chrome"></i>
           <span data-auth-google-label>Google</span>
         </button>
       </div>
-      <p class="auth-mode-note" id="authModeNote">Email + пароль.</p>
+      <p class="auth-mode-note" id="authModeNote" data-auth-signed-out>Email + пароль.</p>
 
-      <label class="field-label compact-field" data-auth-for="signup">
+      <label class="field-label compact-field" data-auth-for="signup" data-auth-signed-out>
         Имя
         <input id="authName" type="text" autocomplete="name" placeholder="Имя">
       </label>
-      <label class="field-label compact-field" data-auth-for="login signup otp">
+      <label class="field-label compact-field" data-auth-for="login signup otp" data-auth-signed-out>
         Email
         <input id="authEmail" type="email" autocomplete="email" placeholder="you@mail.com">
       </label>
-      <label class="field-label compact-field" data-auth-for="login signup">
+      <label class="field-label compact-field" data-auth-for="login signup" data-auth-signed-out>
         Пароль
         <input id="authPassword" type="password" autocomplete="current-password" placeholder="8+ символов">
       </label>
-      <label class="field-label compact-field" data-auth-for="signup">
+      <label class="field-label compact-field" data-auth-for="signup" data-auth-signed-out>
         Повтор
         <input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="ещё раз">
       </label>
 
-      <div class="auth-actions" data-auth-for="login">
+      <div class="auth-actions" data-auth-for="login" data-auth-signed-out>
         <button class="button secondary" type="button" id="emailLogin">Войти</button>
         <button class="button ghost" type="button" id="resetPassword">Забыла?</button>
       </div>
-      <div class="auth-actions" data-auth-for="signup">
+      <div class="auth-actions" data-auth-for="signup" data-auth-signed-out>
         <button class="button secondary" type="button" id="emailSignup">Создать</button>
       </div>
-      <div class="otp-box" data-auth-for="otp">
+      <div class="otp-box" data-auth-for="otp" data-auth-signed-out>
         <div class="auth-code-choice">
           <button class="button secondary full-button" type="button" id="emailOtp">Email-код</button>
           <button class="button ghost full-button" type="button" id="telegramLogin">
@@ -564,7 +576,7 @@
         </div>
       </div>
 
-      <div class="link-box" data-auth-for="otp">
+      <div class="link-box" data-auth-for="otp" data-auth-signed-out>
         <strong>Telegram</strong>
         <p id="authTelegramLinkStatus">Нажми Telegram, отправь код боту.</p>
         <div class="auth-actions">
@@ -582,8 +594,8 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=28"></script>
+  <script src="config.js?v=29"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=28"></script>
+  <script src="script.js?v=29"></script>
 </body>
 </html>

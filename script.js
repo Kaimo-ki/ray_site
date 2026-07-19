@@ -37,8 +37,10 @@ const onboardingNotice = document.getElementById("onboardingNotice");
 const onboardingSteps = [...document.querySelectorAll("[data-step]")];
 const onboardingDots = [...document.querySelectorAll("[data-step-dot]")];
 const nextStepButtons = [...document.querySelectorAll("[data-next-step]")];
+const accountCard = document.getElementById("accountCard");
 const authStatus = document.getElementById("authStatus");
 const authStatusSettings = document.getElementById("authStatusSettings");
+const authStatusHint = document.getElementById("authStatusHint");
 const authStatusModal = document.getElementById("authStatusModal");
 const authPanel = document.getElementById("authPanel");
 const authTitle = document.getElementById("authTitle");
@@ -47,6 +49,8 @@ const openLoginOnboarding = document.getElementById("openLoginOnboarding");
 const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
 const closeAuth = document.getElementById("closeAuth");
+const authContinue = document.getElementById("authContinue");
+const authSetPassword = document.getElementById("authSetPassword");
 const googleLogin = document.getElementById("googleLogin");
 const googleLoginLabel = googleLogin?.querySelector("[data-auth-google-label]");
 const telegramLogin = document.getElementById("telegramLogin");
@@ -66,7 +70,10 @@ const authOtpCode = document.getElementById("authOtpCode");
 const authModeNote = document.getElementById("authModeNote");
 const authModeButtons = [...document.querySelectorAll("[data-auth-mode]")];
 const authModeBlocks = [...document.querySelectorAll("[data-auth-for]")];
+const authSignedInBlocks = [...document.querySelectorAll("[data-auth-signed-in]")];
+const authSignedOutBlocks = [...document.querySelectorAll("[data-auth-signed-out]")];
 const authLoggedInBlocks = [...document.querySelectorAll("[data-auth-logged-in]")];
+const authSignedInEmail = document.getElementById("authSignedInEmail");
 const authProviderGrid = document.querySelector(".auth-provider-grid");
 const appShell = document.querySelector(".app-shell");
 
@@ -128,8 +135,33 @@ const setTelegramLinkStatus = (html) => {
 
 const setAuthStatus = (text) => {
   if (authStatus) authStatus.textContent = text;
-  if (authStatusSettings) authStatusSettings.textContent = text;
   if (authStatusModal) authStatusModal.textContent = text;
+};
+
+const setAccountPanel = (state, detail = "") => {
+  if (accountCard) accountCard.dataset.state = state;
+  if (!authStatusSettings || !authStatusHint) return;
+
+  if (state === "signed-in") {
+    authStatusSettings.textContent = "Вошла";
+    authStatusHint.textContent = detail || "Аккаунт активен.";
+    return;
+  }
+
+  if (state === "pending") {
+    authStatusSettings.textContent = "Проверь email";
+    authStatusHint.textContent = detail || "Аккаунт создан, осталось подтверждение.";
+    return;
+  }
+
+  if (state === "offline") {
+    authStatusSettings.textContent = "Вход не подключён";
+    authStatusHint.textContent = "Supabase сейчас не настроен.";
+    return;
+  }
+
+  authStatusSettings.textContent = "Гость";
+  authStatusHint.textContent = "Войди, чтобы память была общей.";
 };
 
 const setOnboardingNotice = (text) => {
@@ -154,6 +186,10 @@ const pendingAccountMessage = () => {
   if (!email) return "";
   return `Проверь письмо: ${email}. Потом войди.`;
 };
+
+const pendingAccountEmail = () => (
+  readSetting("pending_email") || readSetting("account_email") || ""
+);
 
 const authModeCopy = {
   login: {
@@ -185,22 +221,39 @@ const clearAuthSecrets = () => {
 const setAuthMode = (mode, options = {}) => {
   authMode = authModeCopy[mode] ? mode : "login";
   if (authPanel) authPanel.dataset.authMode = authMode;
+  syncAuthBlocks();
+  if (emailSignup) emailSignup.textContent = authSession?.user ? "Сохранить пароль" : "Создать";
+  if (!options.keepStatus) setAuthStatus(authModeCopy[authMode].status);
+};
+
+const syncAuthBlocks = () => {
+  const signedIn = Boolean(authSession?.user);
+  const editingPassword = Boolean(authPanel?.classList.contains("editing-password"));
   authModeButtons.forEach((button) => {
     const isActive = button.dataset.authMode === authMode;
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+  authSignedInBlocks.forEach((block) => {
+    block.hidden = !signedIn || editingPassword;
+  });
+  authSignedOutBlocks.forEach((block) => {
+    block.hidden = signedIn && !editingPassword;
+  });
+  authLoggedInBlocks.forEach((block) => {
+    block.hidden = !signedIn;
+  });
   authModeBlocks.forEach((block) => {
     const modes = (block.dataset.authFor || "").split(/\s+/);
     const providerIsUnavailable = block === authProviderGrid && googleAuthEnabled === false;
-    block.hidden = !modes.includes(authMode) || providerIsUnavailable;
+    block.hidden = (signedIn && !editingPassword) || !modes.includes(authMode) || providerIsUnavailable;
   });
   if (authTitle) authTitle.textContent = authModeCopy[authMode].title;
   if (authModeNote) authModeNote.textContent = authModeCopy[authMode].note;
   if (authPassword) {
     authPassword.autocomplete = authMode === "signup" ? "new-password" : "current-password";
   }
-  if (!options.keepStatus) setAuthStatus(authModeCopy[authMode].status);
+  if (authSignedInEmail) authSignedInEmail.textContent = authSession?.user?.email || "Аккаунт активен";
 };
 
 const setGoogleLoginText = (text) => {
@@ -246,10 +299,12 @@ const showAuth = (mode = authSession ? "login" : authMode) => {
 
 const hideAuth = () => {
   authPanel?.classList.remove("show");
+  authPanel?.classList.remove("editing-password");
   if (authPausedOnboarding && !onboardingDone()) {
     onboarding?.classList.remove("auth-paused");
   }
   authPausedOnboarding = false;
+  syncAuthBlocks();
   syncBackgroundInteractivity();
 };
 
@@ -306,6 +361,7 @@ const checkGoogleProvider = async () => {
 
 const initAuth = async () => {
   if (!supabaseConfigured()) {
+    setAccountPanel("offline");
     setAuthStatus("Вход пока не подключён.");
     return;
   }
@@ -333,12 +389,15 @@ const initAuth = async () => {
 
 const applyAuthSession = async (session) => {
   authSession = session || null;
-  authLoggedInBlocks.forEach((block) => {
-    block.hidden = !authSession;
-  });
+  syncAuthBlocks();
   const user = session?.user;
   if (!user) {
     const pendingMessage = pendingAccountMessage();
+    if (pendingMessage) {
+      setAccountPanel("pending", pendingAccountEmail());
+    } else {
+      setAccountPanel("guest");
+    }
     setAuthStatus(pendingMessage || authModeCopy[authMode]?.status || "Войди через Google или создай email + пароль.");
     if (pendingMessage && !onboardingDone()) setOnboardingNotice(pendingMessage);
     return;
@@ -358,6 +417,11 @@ const applyAuthSession = async (session) => {
   if (authName && !authName.value.trim()) authName.value = name;
   if (authEmail && !authEmail.value.trim()) authEmail.value = email;
   clearAuthSecrets();
+  setAccountPanel("signed-in", email);
+  setAuthStatus(`Вошла: ${email}`);
+  if (window.location.hash.includes("access_token") || window.location.search.includes("code=")) {
+    window.history.replaceState({}, document.title, canonicalAppUrl());
+  }
   await syncProfile();
   await checkTelegramLink();
   advanceAfterAccess(`Вошла: ${email}`);
@@ -484,8 +548,10 @@ const signUpEmail = async () => {
   setAccountState("pending_email", email);
   setAuthMode("login", { keepStatus: true });
   if (authEmail) authEmail.value = email;
-  const message = `Письмо отправлено: ${email}`;
+  setAccountPanel("pending", email);
+  const message = "Аккаунт создан. Проверь email.";
   setAuthStatus(message);
+  if (authModeNote) authModeNote.textContent = email;
   setOnboardingNotice(message);
 };
 
@@ -567,10 +633,13 @@ const requestPasswordReset = async () => {
 const signOut = async () => {
   if (!requireAuthClient()) return;
   await supabaseClient.auth.signOut();
+  authSession = null;
   localStorage.removeItem("ray_account_email");
   localStorage.removeItem("ray_account_user_id");
   localStorage.removeItem("ray_account_state");
   localStorage.removeItem("ray_pending_email");
+  syncAuthBlocks();
+  setAccountPanel("guest");
   setAuthStatus("Вышла.");
 };
 
@@ -594,6 +663,7 @@ const resetAuthForTesting = async () => {
   showOnboardingStep(0);
   hideAuth();
   syncBackgroundInteractivity();
+  setAccountPanel("guest");
   setAuthStatus("Сброшено.");
 };
 
@@ -897,6 +967,18 @@ openLoginOnboarding?.addEventListener("click", () => showAuth("login"));
 openAuthOnboarding?.addEventListener("click", () => showAuth("signup"));
 openAuthSettings?.addEventListener("click", () => showAuth("login"));
 closeAuth?.addEventListener("click", hideAuth);
+authContinue?.addEventListener("click", () => {
+  const email = authSession?.user?.email || readSetting("account_email") || "аккаунт";
+  advanceAfterAccess(`Вошла: ${email}`);
+});
+authSetPassword?.addEventListener("click", () => {
+  if (!authSession?.user) return;
+  authPanel?.classList.add("editing-password");
+  setAuthMode("signup", { keepStatus: true });
+  if (authEmail) authEmail.value = authSession.user.email || "";
+  setAuthStatus("Новый пароль.");
+  setTimeout(() => authPassword?.focus(), 80);
+});
 authModeButtons.forEach((button) => {
   button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
 });

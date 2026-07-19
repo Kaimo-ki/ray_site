@@ -706,15 +706,41 @@ h1 {
   background: var(--dark);
 }
 
+.account-card[data-state="signed-in"] {
+  border-color: rgba(159, 186, 115, .42);
+  background: #162013;
+}
+
+.account-card[data-state="pending"] {
+  color: var(--dark);
+  border-color: rgba(240, 200, 90, .72);
+  background: #f6e7b8;
+}
+
+.account-card[data-state="offline"] {
+  background: #2d2d2d;
+}
+
 .account-card span,
 .account-card p {
   color: rgba(248, 250, 246, .68);
+}
+
+.account-card[data-state="pending"] span,
+.account-card[data-state="pending"] p {
+  color: rgba(8, 10, 8, .68);
 }
 
 .account-card .button {
   color: #f8faf6;
   border-color: rgba(255,255,255,.18);
   background: rgba(255,255,255,.08);
+}
+
+.account-card[data-state="pending"] .button {
+  color: var(--dark);
+  border-color: rgba(8, 10, 8, .15);
+  background: rgba(255, 255, 255, .46);
 }
 
 .companion-preview-card {
@@ -1046,7 +1072,8 @@ body.companion-rose { --accent: #d76f91; }
 
 .auth-backdrop {
   z-index: 60;
-  background: rgba(8, 10, 8, .82);
+  background: rgba(8, 10, 8, .96);
+  backdrop-filter: blur(20px);
 }
 
 .auth-backdrop.show,
@@ -1175,6 +1202,24 @@ body.companion-rose { --accent: #d76f91; }
 
 .auth-card .link-box p {
   color: rgba(248, 250, 246, .7);
+}
+
+.auth-signed-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(159, 186, 115, .42);
+  border-radius: 8px;
+  background: rgba(159, 186, 115, .14);
+}
+
+.auth-signed-card strong {
+  font-size: 24px;
+}
+
+.auth-signed-card span {
+  color: rgba(248, 250, 246, .72);
+  overflow-wrap: anywhere;
 }
 
 .auth-provider-grid,
