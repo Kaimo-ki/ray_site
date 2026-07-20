@@ -45,10 +45,13 @@ const authStatusModal = document.getElementById("authStatusModal");
 const authPanel = document.getElementById("authPanel");
 const authTitle = document.getElementById("authTitle");
 const openAuth = document.getElementById("openAuth");
+const openAuthHero = document.getElementById("openAuthHero");
+const openAuthFooter = document.getElementById("openAuthFooter");
 const openLoginOnboarding = document.getElementById("openLoginOnboarding");
 const openAuthOnboarding = document.getElementById("openAuthOnboarding");
 const openTelegramOnboarding = document.getElementById("openTelegramOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
+const openPrivacyFromSection = document.getElementById("openPrivacyFromSection");
 const closeAuth = document.getElementById("closeAuth");
 const authContinue = document.getElementById("authContinue");
 const authSetPassword = document.getElementById("authSetPassword");
@@ -1403,7 +1406,10 @@ installApp.addEventListener("click", async () => {
 
 closeInstall.addEventListener("click", hideInstall);
 openConsent.addEventListener("click", showConsent);
+openPrivacyFromSection?.addEventListener("click", showConsent);
 openAuth?.addEventListener("click", () => showAuth("login"));
+openAuthHero?.addEventListener("click", () => showAuth("signup"));
+openAuthFooter?.addEventListener("click", () => showAuth("signup"));
 openLoginOnboarding?.addEventListener("click", () => showAuth("login"));
 openAuthOnboarding?.addEventListener("click", () => showAuth("signup"));
 openTelegramOnboarding?.addEventListener("click", () => showAuth("otp"));
