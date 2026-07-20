@@ -1,0 +1,33 @@
+.env
+.env.*
+!.env.example
+
+# Node/local tooling
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build/cache output
+dist/
+build/
+.cache/
+.parcel-cache/
+.vite/
+
+# Logs and local data
+logs/
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Temporary archives created outside release flow
+*.codex_backup

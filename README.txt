@@ -3,6 +3,11 @@ Ray Web
 Сайт:
 https://kaimo-ki.github.io/ray_site/
 
+Актуальная документация для разработчика:
+- README.md
+- HANDOFF.md
+- TODO.md
+
 Что это:
 Ray Web - публичная web-оболочка Рея. Она показывает продукт, даёт чат, установку как PWA, Ray ID, связь с Telegram и настройки приватности.
 
