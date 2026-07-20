@@ -1,13 +1,13 @@
-const CACHE_NAME = "ray-web-v38";
+const CACHE_NAME = "ray-web-v39";
 const ASSETS = [
   "/ray_site/",
   "/ray_site/index.html",
   "/ray_site/styles.css",
-  "/ray_site/styles.css?v=38",
+  "/ray_site/styles.css?v=39",
   "/ray_site/script.js",
-  "/ray_site/script.js?v=38",
+  "/ray_site/script.js?v=39",
   "/ray_site/config.js",
-  "/ray_site/config.js?v=38",
+  "/ray_site/config.js?v=39",
   "/ray_site/manifest.webmanifest",
   "/ray_site/offline.html",
   "/ray_site/assets/ray-avatar.png",

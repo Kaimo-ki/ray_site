@@ -1350,6 +1350,20 @@ const hideInstall = () => {
   syncBackgroundInteractivity();
 };
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
+const companionChoiceMade = () => Boolean(readSetting("companion_allowed"));
+
+const enableCompanionForInstalledApp = () => {
+  rememberSetting("companion_allowed", "yes");
+  rememberSetting("companion_visible", "yes");
+  if (onboardingCompanion) onboardingCompanion.checked = true;
+};
+
+const primeInstalledCompanion = () => {
+  if (!isStandalone() || companionChoiceMade()) return;
+  enableCompanionForInstalledApp();
+};
+
+primeInstalledCompanion();
 
 setAuthMode("signup");
 
@@ -1379,6 +1393,9 @@ window.addEventListener("beforeinstallprompt", (event) => {
 
 window.addEventListener("appinstalled", () => {
   installPrompt = null;
+  enableCompanionForInstalledApp();
+  setCompanionVisible(true);
+  startCompanionMovement();
   installStatus.textContent = "Рэй установлен. Его можно открыть с экрана телефона или из приложений на компьютере.";
   installApp.textContent = "Установлено";
 });
