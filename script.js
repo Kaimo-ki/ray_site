@@ -21,6 +21,8 @@ const installApp = document.getElementById("installApp");
 const installPanel = document.getElementById("installPanel");
 const closeInstall = document.getElementById("closeInstall");
 const installStatus = document.getElementById("installStatus");
+const companionControls = document.querySelector(".companion-controls");
+const closeCompanionControls = document.getElementById("closeCompanionControls");
 const swatches = document.querySelectorAll("[data-companion]");
 const quickChat = document.getElementById("quickChat");
 const quickChatBody = document.getElementById("quickChatBody");
@@ -1591,6 +1593,11 @@ const setCompanionVisible = (visible) => {
   rememberSetting("companion_visible", visible ? "yes" : "no");
 };
 
+const setCompanionControlsVisible = (visible) => {
+  companionControls?.classList.toggle("hidden", !visible);
+  rememberSetting("companion_controls_hidden", visible ? "no" : "yes");
+};
+
 const openQuickChat = () => {
   if (!companionAllowed()) {
     showConsent();
@@ -1653,6 +1660,7 @@ window.addEventListener("resize", () => {
 
 applyCompanionColor(readSetting("companion_color") || "teal");
 setCompanionVisible(companionAllowed() && readSetting("companion_visible") !== "no");
+if (readSetting("companion_controls_hidden") === "yes") setCompanionControlsVisible(false);
 restoreCompanionPosition();
 startCompanionMovement();
 speakToggle.classList.toggle("active", voiceEnabled);
@@ -1660,6 +1668,8 @@ speakToggle.classList.toggle("active", voiceEnabled);
 swatches.forEach((button) => {
   button.addEventListener("click", () => applyCompanionColor(button.dataset.companion));
 });
+
+closeCompanionControls?.addEventListener("click", () => setCompanionControlsVisible(false));
 
 toggleCompanion.addEventListener("click", () => {
   if (!companionAllowed()) {
