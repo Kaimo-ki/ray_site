@@ -1,4 +1,4 @@
-const CACHE_NAME = "ray-web-v36";
+const CACHE_NAME = "ray-web-v37";
 const ASSETS = [
   "/ray_site/",
   "/ray_site/index.html",
@@ -11,6 +11,7 @@ const ASSETS = [
   "/ray_site/manifest.webmanifest",
   "/ray_site/offline.html",
   "/ray_site/assets/ray-avatar.png",
+  "/ray_site/assets/ray-hero.png",
   "/ray_site/assets/icon-192.png",
   "/ray_site/assets/icon-512.png",
   "/ray_site/downloads/Uninstall-Ray.cmd",
