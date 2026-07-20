@@ -47,6 +47,7 @@ const authTitle = document.getElementById("authTitle");
 const openAuth = document.getElementById("openAuth");
 const openLoginOnboarding = document.getElementById("openLoginOnboarding");
 const openAuthOnboarding = document.getElementById("openAuthOnboarding");
+const openTelegramOnboarding = document.getElementById("openTelegramOnboarding");
 const openAuthSettings = document.getElementById("openAuthSettings");
 const closeAuth = document.getElementById("closeAuth");
 const authContinue = document.getElementById("authContinue");
@@ -56,8 +57,6 @@ const googleLoginLabel = googleLogin?.querySelector("[data-auth-google-label]");
 const telegramLogin = document.getElementById("telegramLogin");
 const emailLogin = document.getElementById("emailLogin");
 const emailSignup = document.getElementById("emailSignup");
-const emailOtp = document.getElementById("emailOtp");
-const verifyOtp = document.getElementById("verifyOtp");
 const resetPassword = document.getElementById("resetPassword");
 const authLogout = document.getElementById("authLogout");
 const authLogoutSettings = document.getElementById("authLogoutSettings");
@@ -66,7 +65,6 @@ const authName = document.getElementById("authName");
 const authEmail = document.getElementById("authEmail");
 const authPassword = document.getElementById("authPassword");
 const authPasswordConfirm = document.getElementById("authPasswordConfirm");
-const authOtpCode = document.getElementById("authOtpCode");
 const authModeNote = document.getElementById("authModeNote");
 const authModeButtons = [...document.querySelectorAll("[data-auth-mode]")];
 const authModeBlocks = [...document.querySelectorAll("[data-auth-for]")];
@@ -202,18 +200,18 @@ const pendingAccountEmail = () => (
 const authModeCopy = {
   login: {
     title: "Вход",
-    note: "Email + пароль.",
-    status: "Вход.",
+    note: "Введи email и пароль от Ray ID.",
+    status: "Войди в Ray ID.",
   },
   signup: {
-    title: "Новый профиль",
-    note: "Имя, email, пароль.",
-    status: "Создать.",
+    title: "Создать",
+    note: "Имя, email и пароль. Аккаунт создаётся сразу.",
+    status: "Создай Ray ID.",
   },
   otp: {
-    title: "Код",
-    note: "Telegram-код для входа.",
-    status: "Код.",
+    title: "Telegram",
+    note: "Получи код и отправь его боту.",
+    status: "Вход через Telegram.",
   },
 };
 
@@ -432,7 +430,6 @@ const authNetworkFailed = (error) => {
 const clearAuthSecrets = () => {
   if (authPassword) authPassword.value = "";
   if (authPasswordConfirm) authPasswordConfirm.value = "";
-  if (authOtpCode) authOtpCode.value = "";
 };
 
 const setAuthMode = (mode, options = {}) => {
@@ -467,7 +464,11 @@ const syncAuthBlocks = () => {
   });
   if (authTitle) authTitle.textContent = authModeCopy[authMode].title;
   if (authModeNote) {
-    if (localAuthAvailable() && ["login", "signup"].includes(authMode)) {
+    if (apiAuthAvailable() && ["login", "signup"].includes(authMode)) {
+      authModeNote.textContent = authMode === "signup"
+        ? "Ray ID сохранится в общей памяти. Потом можно связать Telegram."
+        : "Войди в Ray ID, который уже создавался на сайте.";
+    } else if (localAuthAvailable() && ["login", "signup"].includes(authMode)) {
       authModeNote.textContent = authMode === "signup"
         ? "Ray ID сохранится на этом устройстве."
         : "Вход в Ray ID на этом устройстве.";
@@ -532,7 +533,7 @@ const setAuthServerOffline = () => {
   googleAuthEnabled = false;
   updateGoogleButton();
   setAccountPanel("offline", "Можно создать Ray ID на этом устройстве.");
-  setAuthStatus("Серверный вход выключен. Работает Ray ID.");
+  setAuthStatus(apiAuthAvailable() ? "Ray API отвечает за аккаунты." : "Серверный вход выключен. Работает Ray ID.");
   if (authModeNote) authModeNote.textContent = "Ray ID сохранится на этом устройстве.";
 };
 
@@ -557,20 +558,17 @@ const hideAuth = () => {
 };
 
 const advanceAfterAccess = (message) => {
-  const shouldMoveForward = !onboardingDone() && onboardingStep === 0 && Boolean(
-    onboarding?.classList.contains("show") ||
-    onboarding?.classList.contains("auth-paused") ||
-    authPanel?.classList.contains("show")
-  );
   setAuthStatus(message);
   setOnboardingNotice(message);
   hideAuth();
-  if (shouldMoveForward) {
-    onboarding?.classList.add("show");
+  if (!onboardingDone()) {
+    rememberSetting("onboarding_done", "yes");
+    if (!readSetting("privacy_seen")) rememberSetting("privacy_seen", "yes");
+    if (!readSetting("memory_allowed")) rememberSetting("memory_allowed", "yes");
+    onboarding?.classList.remove("show");
     onboarding?.classList.remove("auth-paused");
-    showOnboardingStep(1);
-    syncBackgroundInteractivity();
   }
+  syncBackgroundInteractivity();
 };
 
 const updateGoogleButton = () => {
@@ -753,14 +751,14 @@ const signInEmail = async () => {
     setAuthStatus("Нужен пароль.");
     return;
   }
-  if (apiAuthAvailable() && localAuthAvailable()) {
+  if (apiAuthAvailable()) {
     setAuthStatus("Вхожу...");
     if (emailLogin) emailLogin.disabled = true;
     try {
       const session = await signInApiAccount(email, password);
       await applyAuthSession(session);
     } catch (error) {
-      if (error.status === 401) {
+      if (error.status === 401 || error.status === 404) {
         setAuthStatus(friendlyAuthError(error));
       } else {
         try {
@@ -879,7 +877,7 @@ const signUpEmail = async () => {
     return;
   }
 
-  if (apiAuthAvailable() && localAuthAvailable()) {
+  if (apiAuthAvailable()) {
     setAuthStatus("Создаю...");
     if (emailSignup) emailSignup.disabled = true;
     try {
@@ -980,82 +978,6 @@ const signUpEmail = async () => {
   setAuthStatus(message);
   if (authModeNote) authModeNote.textContent = email;
   setOnboardingNotice(message);
-};
-
-const sendEmailOtp = async () => {
-  const email = getAuthEmail();
-  if (!isValidEmail(email)) {
-    setAuthStatus("Нужен email.");
-    return;
-  }
-  if (localAuthAvailable()) {
-    setAuthStatus("Email-код включим после живого Supabase. Сейчас работает пароль.");
-    return;
-  }
-  if (!requireAuthClient("Код")) return;
-  setAuthStatus("Отправляю...");
-  if (emailOtp) emailOtp.disabled = true;
-  let error = null;
-  try {
-    ({ error } = await supabaseClient.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: canonicalAppUrl(),
-        shouldCreateUser: true,
-      },
-    }));
-  } catch (requestError) {
-    error = requestError;
-  } finally {
-    if (emailOtp) emailOtp.disabled = false;
-  }
-  if (error) {
-    setAuthStatus(friendlyAuthError(error));
-    return;
-  }
-  setAuthStatus("Код отправлен.");
-};
-
-const verifyEmailOtp = async () => {
-  const email = getAuthEmail();
-  const token = authOtpCode?.value.trim().replace(/\s+/g, "") || "";
-  if (!isValidEmail(email)) {
-    setAuthStatus("Нужен email.");
-    return;
-  }
-  if (!/^\d{6}$/.test(token)) {
-    setAuthStatus("Нужно 6 цифр.");
-    return;
-  }
-  if (localAuthAvailable()) {
-    setAuthStatus("Код включим после живого Supabase.");
-    return;
-  }
-  if (!requireAuthClient("Код")) return;
-  setAuthStatus("Проверяю...");
-  if (verifyOtp) verifyOtp.disabled = true;
-  let data = null;
-  let error = null;
-  try {
-    ({ data, error } = await supabaseClient.auth.verifyOtp({
-      email,
-      token,
-      type: "email",
-    }));
-  } catch (requestError) {
-    error = requestError;
-  } finally {
-    if (verifyOtp) verifyOtp.disabled = false;
-  }
-  if (error) {
-    setAuthStatus(friendlyAuthError(error));
-    return;
-  }
-  if (!data.session) {
-    setAuthStatus("Открой ссылку письма.");
-    return;
-  }
-  await applyAuthSession(data.session);
 };
 
 const requestPasswordReset = async () => {
@@ -1424,7 +1346,7 @@ const hideInstall = () => {
 };
 const companionAllowed = () => readSetting("companion_allowed") === "yes";
 
-setAuthMode("login");
+setAuthMode("signup");
 
 if (readSetting("onboarding_done") === "yes") {
   onboarding.classList.remove("show");
@@ -1484,6 +1406,7 @@ openConsent.addEventListener("click", showConsent);
 openAuth?.addEventListener("click", () => showAuth("login"));
 openLoginOnboarding?.addEventListener("click", () => showAuth("login"));
 openAuthOnboarding?.addEventListener("click", () => showAuth("signup"));
+openTelegramOnboarding?.addEventListener("click", () => showAuth("otp"));
 openAuthSettings?.addEventListener("click", () => showAuth("login"));
 closeAuth?.addEventListener("click", hideAuth);
 authContinue?.addEventListener("click", () => {
@@ -1504,8 +1427,6 @@ authModeButtons.forEach((button) => {
 googleLogin?.addEventListener("click", signInGoogle);
 emailLogin?.addEventListener("click", signInEmail);
 emailSignup?.addEventListener("click", signUpEmail);
-emailOtp?.addEventListener("click", sendEmailOtp);
-verifyOtp?.addEventListener("click", verifyEmailOtp);
 resetPassword?.addEventListener("click", requestPasswordReset);
 authLogout?.addEventListener("click", signOut);
 authLogoutSettings?.addEventListener("click", signOut);

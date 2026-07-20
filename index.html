@@ -13,89 +13,48 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=34">
+  <link rel="stylesheet" href="styles.css?v=35">
 </head>
 <body>
   <section class="onboarding show" id="onboarding" aria-label="Первый запуск Рея">
-    <div class="onboarding-card">
-      <div class="onboarding-progress">
-        <span class="active" data-step-dot="0"></span>
-        <span data-step-dot="1"></span>
-        <span data-step-dot="2"></span>
-        <span data-step-dot="3"></span>
-      </div>
+    <div class="onboarding-card welcome-card">
       <p class="onboarding-notice" id="onboardingNotice" hidden></p>
 
       <article class="onboarding-step active" data-step="0">
+        <div class="welcome-mark">
+          <img src="assets/ray-avatar.png" alt="">
+          <span></span>
+        </div>
         <p class="eyebrow">Ray ID</p>
-        <h1>Привет. Я Рэй.</h1>
-        <p>Выбери старт.</p>
-        <p class="auth-status-line start-status" id="authStatus">Гость</p>
+        <h1>Привет, я Рэй. А ты?</h1>
+        <p>Создай аккаунт, войди или зайди через Telegram-код. После входа это окно исчезнет, а память будет работать и на сайте, и в Telegram.</p>
+        <p class="auth-status-line start-status" id="authStatus">Выбери способ входа.</p>
         <div class="start-menu" aria-label="Старт Рея">
-          <button class="start-choice main-choice" type="button" id="openLoginOnboarding">
-            <i data-lucide="log-in"></i>
-            <strong>Войти</strong>
-            <span>уже есть аккаунт</span>
-          </button>
-          <button class="start-choice" type="button" id="openAuthOnboarding">
+          <button class="start-choice main-choice" type="button" id="openAuthOnboarding">
             <i data-lucide="user-plus"></i>
             <strong>Создать</strong>
             <span>новый Ray ID</span>
           </button>
-          <button class="start-choice quiet-choice" type="button" data-next-step>
+          <button class="start-choice" type="button" id="openLoginOnboarding">
+            <i data-lucide="log-in"></i>
+            <strong>Войти</strong>
+            <span>email и пароль</span>
+          </button>
+          <button class="start-choice" type="button" id="openTelegramOnboarding">
+            <i data-lucide="send"></i>
+            <strong>Telegram</strong>
+            <span>код через бота</span>
+          </button>
+          <button class="start-choice quiet-choice" type="button" id="finishOnboarding">
             <i data-lucide="play"></i>
             <strong>Гость</strong>
-            <span>без общей памяти</span>
+            <span>просто посмотреть сайт</span>
           </button>
         </div>
-      </article>
-
-      <article class="onboarding-step" data-step="1">
-        <p class="eyebrow">Как пользоваться</p>
-        <h2>Пиши как человеку. Рэй отвечает на месте.</h2>
-        <div class="guide-list">
-          <p><strong>Чат:</strong> вопрос, мысль, цель, просьба или короткое “помоги понять”.</p>
-          <p><strong>Память:</strong> “Запомни: ...” сохраняется как важный факт.</p>
-          <p><strong>Telegram:</strong> после связки бот читает ту же память.</p>
-          <p><strong>Голос:</strong> работает через разрешение микрофона там, где браузер поддерживает распознавание.</p>
+        <div class="welcome-permissions" aria-label="Быстрые разрешения">
+          <label><input type="checkbox" id="onboardingMemory" checked> Память включена</label>
+          <label><input type="checkbox" id="onboardingCompanion"> Кнопка Рэя внутри сайта</label>
         </div>
-        <button class="button primary" type="button" data-next-step>
-          <i data-lucide="arrow-right"></i>
-          Дальше
-        </button>
-      </article>
-
-      <article class="onboarding-step" data-step="2">
-        <p class="eyebrow">Задачи</p>
-        <h2>Выбери, где Рэй должен быть полезнее.</h2>
-        <div class="purpose-grid">
-          <label><input type="checkbox" value="study"> Учёба и объяснения</label>
-          <label><input type="checkbox" value="goals"> Цели и планы</label>
-          <label><input type="checkbox" value="support"> Поддержка и мысли</label>
-          <label><input type="checkbox" value="work"> Работа и ответы</label>
-        </div>
-        <button class="button primary" type="button" data-next-step>
-          <i data-lucide="arrow-right"></i>
-          Продолжить
-        </button>
-      </article>
-
-      <article class="onboarding-step" data-step="3">
-        <p class="eyebrow">Разрешения</p>
-        <h2>Ты решаешь, что Рэю можно.</h2>
-        <p>Рэй не читает экран, файлы и другие приложения сам. Он видит только то, что ты отправляешь или разрешаешь позже отдельному desktop companion.</p>
-        <label class="check-row">
-          <input type="checkbox" id="onboardingMemory" checked>
-          <span>Разрешить память для целей, стиля общения и важных заметок.</span>
-        </label>
-        <label class="check-row">
-          <input type="checkbox" id="onboardingCompanion">
-          <span>Показать кнопку-спутника внутри сайта.</span>
-        </label>
-        <button class="button primary" type="button" id="finishOnboarding">
-          <i data-lucide="check"></i>
-          Подключить Рэя
-        </button>
       </article>
     </div>
   </section>
@@ -113,14 +72,14 @@
         <a href="#memory"><i data-lucide="brain"></i>Память</a>
         <a href="#install"><i data-lucide="download"></i>Скачать</a>
         <a href="#ecosystem"><i data-lucide="link"></i>Связки</a>
-        <a href="#roadmap"><i data-lucide="map"></i>План</a>
+        <a href="#scenarios"><i data-lucide="layout-list"></i>Сценарии</a>
       </nav>
 
       <div class="side-panel">
         <span class="status-dot"></span>
         <div>
           <strong>Ray Web</strong>
-          <p>Сайт, API, память и Telegram в одной системе.</p>
+          <p>Чат, Ray ID, память и Telegram в одной системе.</p>
         </div>
       </div>
     </aside>
@@ -152,7 +111,7 @@
           </div>
           <p class="eyebrow">AI-компаньон</p>
           <h1>Рэй помогает думать, учиться, держать фокус и не терять важное.</h1>
-          <p class="lead">Это не просто Telegram-бот. Рэй — один персональный помощник: сайт, установленное web-приложение, Telegram и общая память между ними.</p>
+          <p class="lead">Один личный помощник для чата, целей, учёбы, голосовых заметок и важных фактов. Он отвечает коротко, помнит контекст и остаётся рядом там, где тебе удобно.</p>
           <div class="hero-actions">
             <button class="button primary" type="button" id="openConsent">
               <i data-lucide="shield-check"></i>
@@ -177,8 +136,8 @@
               <strong>Postgres</strong>
             </div>
             <div>
-              <span>Login</span>
-              <strong>Google + email</strong>
+              <span>Account</span>
+              <strong>Ray ID</strong>
             </div>
           </div>
         </div>
@@ -256,9 +215,9 @@
 
       <section class="product-section full-screen" id="product">
         <div class="section-copy">
-          <p class="eyebrow">Что такое Рэй</p>
-          <h2>Персональный AI-помощник, который со временем становится понятнее именно тебе.</h2>
-          <p>Рэй отвечает коротко, запоминает важное, помогает с учёбой, целями, мыслями и бытовыми решениями. Он не заменяет человека, а держит контекст рядом, чтобы не начинать каждый разговор с нуля.</p>
+          <p class="eyebrow">Что умеет Рэй</p>
+          <h2>Он не требует идеальный промпт. Ему можно писать как человеку.</h2>
+          <p>Рэй разбирает вопрос, уточняет детали, запоминает важное и помогает довести мысль до действия. Формат простой: написал, сказал голосом или сохранил цель — Рэй подхватывает контекст.</p>
         </div>
         <div class="feature-stack">
           <article>
@@ -268,13 +227,18 @@
           </article>
           <article>
             <i data-lucide="graduation-cap"></i>
-            <strong>Учитель и объяснитель</strong>
-            <p>Разбирает темы, задаёт вопросы, проверяет понимание и помогает собрать план обучения.</p>
+            <strong>Учёба и объяснения</strong>
+            <p>Объясняет тему простым языком, спрашивает, что непонятно, даёт примеры и помогает проверить понимание.</p>
           </article>
           <article>
             <i data-lucide="list-checks"></i>
             <strong>Менеджер целей</strong>
             <p>Большую цель превращает в маленькие шаги: сегодня, неделя, прогресс, что мешает и что делать дальше.</p>
+          </article>
+          <article>
+            <i data-lucide="heart-handshake"></i>
+            <strong>Поддержка без давления</strong>
+            <p>Помогает разложить мысли, выбрать первый шаг и не превращает каждый ответ в длинную лекцию.</p>
           </article>
         </div>
       </section>
@@ -282,14 +246,14 @@
       <section class="memory-section full-screen" id="memory">
         <div class="section-copy">
           <p class="eyebrow">Память</p>
-          <h2>Одна память для сайта и Telegram.</h2>
-          <p>Если написать “Запомни: ...”, Рэй сохраняет это как важную заметку. После связки Telegram-бот и web-чат смотрят в один профиль.</p>
+          <h2>Один аккаунт, один контекст, один Рэй.</h2>
+          <p>Если написать “Запомни: ...”, Рэй сохраняет факт в профиле. Потом можно спросить об этом на сайте или в Telegram после связки аккаунта.</p>
         </div>
         <div class="flow-board">
           <div class="flow-card">
             <span>1</span>
-            <strong>Вход</strong>
-            <p>Google или email + пароль создают web-аккаунт.</p>
+            <strong>Ray ID</strong>
+            <p>Создаёшь аккаунт через email и пароль или входишь другим доступным способом.</p>
           </div>
           <div class="flow-card">
             <span>2</span>
@@ -301,10 +265,10 @@
             <strong>Одна память</strong>
             <p>Факты и контекст доступны и на сайте, и в Telegram.</p>
           </div>
-          <div class="flow-card muted-card">
-            <span>Дальше</span>
-            <strong>Telegram как вход</strong>
-            <p>Следующий backend-шаг: после кода Telegram сможет становиться полноценным способом авторизации.</p>
+          <div class="flow-card">
+            <span>4</span>
+            <strong>Telegram-вход</strong>
+            <p>Если Telegram уже связан, можно войти на сайте через короткую команду боту.</p>
           </div>
         </div>
       </section>
@@ -312,8 +276,8 @@
       <section class="install-section full-screen" id="install">
         <div class="section-copy">
           <p class="eyebrow">Скачать Рэя</p>
-          <h2>Сейчас Рэй устанавливается как web-приложение. App Store и Google Play — следующий этап.</h2>
-          <p>На телефоне Рэй открывается как отдельная иконка через PWA. На Windows можно поставить ярлык Ray Web и отдельную плавающую кнопку companion.</p>
+          <h2>Рэй можно установить как приложение прямо с сайта.</h2>
+          <p>На телефоне он появляется отдельной иконкой через PWA. На Windows можно поставить Ray Web и отдельную beta-кнопку companion. App Store и Google Play появятся после стабильной web-версии.</p>
           <div class="store-row" aria-label="Будущие магазины приложений">
             <span class="store-badge"><i data-lucide="apple"></i> App Store скоро</span>
             <span class="store-badge"><i data-lucide="play"></i> Google Play скоро</span>
@@ -341,8 +305,8 @@
           </article>
           <article>
             <i data-lucide="sparkles"></i>
-            <strong>Windows Companion</strong>
-            <p>Плавающая кнопка Рэя. Новый установщик уже знает Railway API.</p>
+            <strong>Кнопка Рэя</strong>
+            <p>Маленький companion для быстрого чата внутри сайта. Цвет меняется, положение запоминается.</p>
             <div class="mini-actions">
               <a class="button secondary" href="/ray_site/downloads/Install-Ray-Companion.cmd" download>Кнопка Рэя</a>
               <a class="button ghost" href="/ray_site/downloads/Uninstall-Ray.cmd" download>Удалить</a>
@@ -354,45 +318,45 @@
       <section class="ecosystem full-screen" id="ecosystem">
         <div class="section-copy">
           <p class="eyebrow">Экосистема</p>
-          <h2>Рэй должен быть там, где человеку удобно общаться.</h2>
-          <p>Сайт — главный кабинет. Telegram — быстрый вход в разговор. Установленное web-приложение — иконка на телефоне или ноуте. WhatsApp, Instagram и native mobile идут после стабильного ядра.</p>
+          <h2>Рэй работает как единый помощник, а не как набор отдельных чатов.</h2>
+          <p>Сайт — главный кабинет. Telegram — быстрый разговор. Установленное web-приложение — иконка на телефоне или ноуте. Все действия строятся вокруг одного Ray ID и одной памяти.</p>
         </div>
         <div class="ecosystem-grid">
           <div><i data-lucide="globe-2"></i><strong>Ray Web</strong><span>кабинет, чат, настройки</span></div>
           <div><i data-lucide="send"></i><strong>Telegram</strong><span>быстро написать без установки</span></div>
-          <div><i data-lucide="badge-check"></i><strong>Account</strong><span>Google, email, Telegram-link</span></div>
-          <div><i data-lucide="monitor-dot"></i><strong>Desktop</strong><span>companion после отдельной доработки</span></div>
+          <div><i data-lucide="badge-check"></i><strong>Ray ID</strong><span>email, пароль и Telegram-код</span></div>
+          <div><i data-lucide="monitor-dot"></i><strong>Desktop</strong><span>сайт и beta-companion</span></div>
           <div><i data-lucide="smartphone"></i><strong>Mobile</strong><span>PWA сейчас, App Store позже</span></div>
           <div><i data-lucide="shield-check"></i><strong>Privacy</strong><span>разрешения выбирает человек</span></div>
         </div>
       </section>
 
-      <section class="roadmap-section full-screen" id="roadmap">
+      <section class="scenarios-section full-screen" id="scenarios">
         <div class="section-copy">
-          <p class="eyebrow">Что осталось</p>
-          <h2>Чтобы Рэй ощущался как продукт, нужно закрыть не дизайн, а ядро функций.</h2>
-          <p>Красивый сайт помогает показать идею. Но покупать будут только тогда, когда память, голос, фото, установка и вход работают предсказуемо.</p>
+          <p class="eyebrow">Сценарии</p>
+          <h2>Рэй помогает в обычных моментах, где человеку нужен фокус.</h2>
+          <p>Не нужно открывать десять приложений. Можно просто написать Рэю, что происходит, и получить следующий понятный шаг.</p>
         </div>
-        <div class="roadmap-list">
+        <div class="scenario-list">
           <article>
-            <strong>1. Telegram-вход</strong>
-            <p>Доделать вход через код так, чтобы Telegram мог быть не только связкой, но и полноценной авторизацией.</p>
+            <strong>Учёба</strong>
+            <p>“Объясни тему простыми словами, потом проверь меня вопросами.”</p>
           </article>
           <article>
-            <strong>2. Голос</strong>
-            <p>Сделать backend-распознавание аудио, чтобы сайт и companion не зависели от капризов браузера.</p>
+            <strong>Цели</strong>
+            <p>“Хочу подтянуть английский. Сделай реальный план на неделю.”</p>
           </article>
           <article>
-            <strong>3. Фото-анализ</strong>
-            <p>Подключить vision-модель и вернуть анализ изображений без лишних кнопок.</p>
+            <strong>Мысли</strong>
+            <p>“Я запуталась. Помоги разложить и выбрать, с чего начать.”</p>
           </article>
           <article>
-            <strong>4. Цели и привычки</strong>
-            <p>Добавить настоящую страницу целей: шаги, прогресс, мягкие напоминания.</p>
+            <strong>Память</strong>
+            <p>“Запомни это и напомни мне, когда я снова спрошу.”</p>
           </article>
           <article>
-            <strong>5. Desktop companion</strong>
-            <p>Отдельно довести плавающую кнопку: цвет, голос, быстрый чат, удаление и разрешения.</p>
+            <strong>Быстрый ответ</strong>
+            <p>“Что мне сейчас написать человеку? Дай коротко и нормально.”</p>
           </article>
         </div>
       </section>
@@ -401,7 +365,7 @@
         <div class="section-copy">
           <p class="eyebrow">Контакты</p>
           <h2>Попробуй Рэя там, где удобнее.</h2>
-          <p>Сайт показывает продуктовую оболочку, Telegram даёт быстрый живой тест, а GitHub хранит код проекта.</p>
+          <p>Начать можно на сайте или в Telegram. После связки Рэй будет помнить один и тот же контекст.</p>
         </div>
         <div class="contact-actions">
           <a class="button primary" href="https://t.me/rey_helper_bot">
@@ -513,7 +477,7 @@
           <h2 id="authTitle">Вход</h2>
         </div>
       </div>
-      <p class="auth-status-line" id="authStatusModal">Выбери способ.</p>
+      <p class="auth-status-line" id="authStatusModal">Выбери способ входа.</p>
 
       <div class="auth-signed-card" data-auth-signed-in hidden>
         <strong>Ты вошла</strong>
@@ -525,9 +489,9 @@
       </div>
 
       <div class="auth-tabs" role="tablist" aria-label="Способ входа" data-auth-signed-out>
-        <button class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
-        <button class="auth-tab" type="button" data-auth-mode="signup">Создать</button>
-        <button class="auth-tab" type="button" data-auth-mode="otp">Код</button>
+        <button class="auth-tab active" type="button" data-auth-mode="signup">Создать</button>
+        <button class="auth-tab" type="button" data-auth-mode="login">Войти</button>
+        <button class="auth-tab" type="button" data-auth-mode="otp">Telegram</button>
       </div>
 
       <div class="auth-provider-grid" data-auth-for="login signup" data-auth-signed-out>
@@ -536,13 +500,13 @@
           <span data-auth-google-label>Google</span>
         </button>
       </div>
-      <p class="auth-mode-note" id="authModeNote" data-auth-signed-out>Email + пароль.</p>
+      <p class="auth-mode-note" id="authModeNote" data-auth-signed-out>Ray ID: email и пароль.</p>
 
       <label class="field-label compact-field" data-auth-for="signup" data-auth-signed-out>
         Имя
         <input id="authName" type="text" autocomplete="name" placeholder="Имя">
       </label>
-      <label class="field-label compact-field" data-auth-for="login signup otp" data-auth-signed-out>
+      <label class="field-label compact-field" data-auth-for="login signup" data-auth-signed-out>
         Email
         <input id="authEmail" type="email" autocomplete="email" placeholder="you@mail.com">
       </label>
@@ -563,17 +527,11 @@
         <button class="button secondary" type="button" id="emailSignup">Создать</button>
       </div>
       <div class="otp-box" data-auth-for="otp" data-auth-signed-out>
-        <div class="auth-code-choice">
-          <button class="button secondary full-button" type="button" id="emailOtp">Email-код</button>
-          <button class="button ghost full-button" type="button" id="telegramLogin">
-            <i data-lucide="send"></i>
-            Telegram-код
-          </button>
-        </div>
-        <div class="auth-grid">
-          <input id="authOtpCode" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
-          <button class="button ghost" type="button" id="verifyOtp">ОК</button>
-        </div>
+        <button class="button secondary full-button" type="button" id="telegramLogin">
+          <i data-lucide="send"></i>
+          Получить Telegram-код
+        </button>
+        <p class="auth-mode-note">Сайт покажет команду. Отправь её боту, и вход завершится сам.</p>
       </div>
 
       <div class="link-box" data-auth-for="otp" data-auth-signed-out>
@@ -594,8 +552,8 @@
   </div>
 
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="config.js?v=34"></script>
+  <script src="config.js?v=35"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=34"></script>
+  <script src="script.js?v=35"></script>
 </body>
 </html>

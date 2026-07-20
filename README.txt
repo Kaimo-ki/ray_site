@@ -1,32 +1,37 @@
-Ray public site
+Ray Web
 
-Public URL:
+Сайт:
 https://kaimo-ki.github.io/ray_site/
 
-Local entry:
-index.html
+Что это:
+Ray Web - публичная web-оболочка Рея. Она показывает продукт, даёт чат, установку как PWA, Ray ID, связь с Telegram и настройки приватности.
 
-Install options:
-- PWA install through Chrome, Edge, Android Chrome, or iPhone Safari "Add to Home Screen".
-- Windows app shortcut: downloads/Install-Ray-Web.cmd
-- Windows floating companion: downloads/Install-Ray-Companion.cmd
-- Downloadable static site archive: downloads/ray-web.zip
+Главные функции на сайте:
+- чат с Реем;
+- Ray ID: регистрация и вход через email + пароль;
+- Telegram-связка через /link код;
+- Telegram-вход через /login код, если Telegram уже связан;
+- единая память через Railway API + Postgres;
+- установка как web-приложение на iPhone, Android и Windows;
+- beta-кнопка Рея внутри сайта с выбором цвета и быстрым чатом.
 
-Privacy behavior:
-- Ray does not read the computer, phone, files, screen, or other apps.
-- Ray sees only messages and files the user sends directly.
-- Memory and free companion movement are separate user choices.
-- If the user chooses "chat only", Ray still works in chat and companion movement stays off.
+Как тестировать:
+1. Открыть сайт.
+2. Нажать "Создать" и сделать Ray ID через email + пароль.
+3. Написать в чат: "Запомни: моя цифра 5".
+4. Нажать "Связать Telegram" и отправить боту /link код.
+5. В Telegram спросить: "Какая моя цифра?"
+6. Для входа через Telegram на сайте нажать "Telegram" и отправить боту /login код.
 
-Backend connection:
-Set window.RAY_API_URL in config.js when the 24/7 Ray API is deployed.
-Ray Web uses Ray API for email/password account signup/login when the API is available.
-If Ray API auth is not reachable yet, the site falls back to a local Ray ID stored on this device.
-Never put DATABASE_URL or secret keys in this site. DATABASE_URL belongs only in the Railway backend services.
+Важно:
+- DATABASE_URL, TOKEN, GROQ_API_KEY и другие секреты нельзя класть в этот репозиторий.
+- DATABASE_URL должен быть только в Railway services: ray-api и ray-bot.
+- config.js хранит только публичные настройки сайта.
+- Если установленная PWA показывает старую версию, нужно обновить страницу или переустановить PWA после нового деплоя.
 
-Telegram:
-The same Telegram bot can open Ray Web through a Web App button.
-Telegram itself does not allow a bot to draw a floating object over the normal chat UI.
-Current bot username: @rey_helper_bot
-For shared memory, create/login to Ray Account on the site, then use the Telegram link code.
-After Telegram is linked, the site can start Telegram login: click "Код" -> "Telegram-код", then send /login code to the bot.
+Файлы:
+- index.html - структура сайта.
+- styles.css - внешний вид.
+- script.js - чат, установка, вход, Telegram-link.
+- manifest.webmanifest + sw.js - установка PWA и кэш.
+- downloads/ - Windows-установщики и ZIP сайта.
